@@ -10,21 +10,21 @@
 
 <h4 style="text-align: center">P' (x + tx, y + ty)</h4>
 
-<div style="text-align: center"><img width="400" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/translate.png"></div>
+<div style="text-align: center"><img width="400" height="auto" src="https://swpuhu.github.io/pictures/translate.png"></div>
 
 那如何使用向量来表示平移呢？
 
 **我们在GL程序中使用一个四维向量来表示坐标**
 
-<div style="text-align: center"><img width="50" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/vector.png"></div>
+<div style="text-align: center"><img width="50" height="auto" src="https://swpuhu.github.io/pictures/vector.png"></div>
 
 **使用一个4X4的矩阵来表示变换矩阵**
 
-<div style="text-align: center"><img width="200" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/matrix.png"></div>
+<div style="text-align: center"><img width="200" height="auto" src="https://swpuhu.github.io/pictures/matrix.png"></div>
 
 **然后让它们相乘，从而达到改变坐标的目的。**
 
-<div style="text-align: center"><img width="500" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/multiple2.png"></div>
+<div style="text-align: center"><img width="500" height="auto" src="https://swpuhu.github.io/pictures/multiple2.png"></div>
 
 在平移中，P'的坐标(x', y'), x' = x + tx; y' = y + ty;
 
@@ -41,7 +41,7 @@ a = 1, b = 0, c = 0, d = tx;
 e = 0, f = 1, g = 0, h = ty;
 
 那么平移的变换矩阵为：
-<div style="text-align: center"><img width="200" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/translateMatrix2.png"></div>
+<div style="text-align: center"><img width="200" height="auto" src="https://swpuhu.github.io/pictures/translateMatrix2.png"></div>
 
 
 ## 旋转
@@ -49,21 +49,21 @@ e = 0, f = 1, g = 0, h = ty;
 设点O(a, b) 为旋转中心， 点P(x, y) 绕点O逆时针旋转β度，得到点P'(x', y'), 那么旋转后的点P' 与旋转前的点P的关系如下：
 
 
-<div style="text-align: center"><img width="500" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/rotate.png"></div>
+<div style="text-align: center"><img width="500" height="auto" src="https://swpuhu.github.io/pictures/rotate.png"></div>
 
 
-<div style="text-align: center"><img width="400" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/rotate-tuidao.png"></div>
+<div style="text-align: center"><img width="400" height="auto" src="https://swpuhu.github.io/pictures/rotate-tuidao.png"></div>
 
 
 <h4>①, ③ / ②, ④ 联立求解可得： </h4>
 
 
-<div style="text-align: center"><img width="400" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/rotate-result.png"></div>
+<div style="text-align: center"><img width="400" height="auto" src="https://swpuhu.github.io/pictures/rotate-result.png"></div>
 
 **可得绕某一点旋转一定角度的变换矩阵为：**
 
 
-<div style="text-align: center"><img width="500" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/rotateMatrix.png"></div>
+<div style="text-align: center"><img width="500" height="auto" src="https://swpuhu.github.io/pictures/rotateMatrix.png"></div>
 
 
 ## 缩放
@@ -80,7 +80,7 @@ y' = 2 * y;
 
 **变换矩阵为：**
 
-<div style="text-align: center"><img width="200" height="auto" src="https://raw.githubusercontent.com/swpuhu/pictures/master/scaleMatrix.png"></div>
+<div style="text-align: center"><img width="200" height="auto" src="https://swpuhu.github.io/pictures/scaleMatrix.png"></div>
 
 ## WebGL实现
 
