@@ -1,4 +1,4 @@
-import util from './glUtil.js';
+import util from '../glUtil.js';
 
 // 先平移再旋转
 const VERTEX_SHADER = `
@@ -134,7 +134,7 @@ function main(vertexShaderSource, fragShaderSource, i, src) {
     gl.uniform1i(u_texture, i);
 
     let image = new Image();
-    image.src = src || './assets/icon.jpg';
+    image.src = src || '../assets/icon.jpg';
     if (image.complete) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -185,10 +185,12 @@ function main(vertexShaderSource, fragShaderSource, i, src) {
         input3.max = canvas.height;
         input3.min = -canvas.height;
         input4.type = 'range';
+        input4.step = 0.1;
         input4.value = 0;
         input4.max = 5;
         input4.min = 1;
         input5.type = 'range';
+        input5.step = 0.1;
         input5.value = 0;
         input5.max = 5;
         input5.min = 1;
