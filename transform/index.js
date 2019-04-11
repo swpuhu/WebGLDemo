@@ -101,7 +101,7 @@ function main(vertexShaderSource, fragShaderSource, i, src) {
     gl.bufferData(gl.ARRAY_BUFFER, bufferPosition, gl.STATIC_DRAW);
 
     let texture = gl.createTexture();
-    gl.activeTexture(gl['TEXTURE' + i]);
+    // gl.activeTexture(gl['TEXTURE' + i]);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -131,7 +131,7 @@ function main(vertexShaderSource, fragShaderSource, i, src) {
     gl.uniformMatrix4fv(v_scaleMatrix, false, scaleMatrix);
 
     let u_texture = gl.getUniformLocation(gl.program, 'u_texture');
-    gl.uniform1i(u_texture, i);
+    // gl.uniform1i(u_texture, i);
 
     let image = new Image();
     image.src = src || '../assets/icon.jpg';
@@ -142,6 +142,21 @@ function main(vertexShaderSource, fragShaderSource, i, src) {
     image.onload = function () {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        let image2 = new Image();
+        image2.src = '../assets/hc.jpg';
+
+        image2.onload = function () {
+            let newPos = new Float32Array([
+                0.0, canvas.height / 2, 0.0, 0.0, 0.0, 1.0,
+                canvas.width, canvas.height / 2, 0.0, 0.0, 1.0, 1.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                canvas.width, 0, 0.0, 0.0, 1.0, 0.0,
+            ]);
+            gl.bufferData(gl.ARRAY_BUFFER, newPos, gl.STATIC_DRAW);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image2);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
     }
 
     function setRotateUI () {
