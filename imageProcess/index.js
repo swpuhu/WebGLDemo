@@ -39,7 +39,7 @@ const FRAG_SHADER = `
 function main (VERTEX_SHADER, FRAG_SHADER) {
     let canvas = document.createElement('canvas');
     canvas.width = 640;
-    canvas.height = 320;
+    canvas.height = 360;
     document.body.appendChild(canvas);
     let gl = canvas.getContext('webgl', {preserveDrawingBuffer: true});
     util.createProgramBySource(gl, VERTEX_SHADER, FRAG_SHADER);
@@ -96,8 +96,8 @@ function main (VERTEX_SHADER, FRAG_SHADER) {
     let video = window.video = document.createElement('video');
     video.crossOrigin = 'anonymous';
     video.controls = true;
-    // document.body.appendChild(window.video);
     video.src = 'http://lmbsy.qq.com/flv/73/89/i0201oyl32u.p201.1.mp4?platform=10201&vkey=9C52B39F7131B7E09F7A949B9817454A64E4A68BEDA453B2A2512CB672EBF64E88DA5740C12CAAC256265A4195EBE799AA60F84AF01BE68B50656D2663436DBDC56A403E21F98AD645FDF6CDC7974C017A0B38568059A646626BDC49D2394AF6E1F40C41A932C9C1DD86D5A65778FF5FB625E26154113ED3&fmt=shd&sdtfrom=&level=0';
+    // video.src = '../../Pictures2/dengmi.mp4';
 
     video.oncanplaythrough = function () {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
@@ -119,7 +119,8 @@ function main (VERTEX_SHADER, FRAG_SHADER) {
         console.log('abort');
     }
 
-    let delta = 0.006;
+    let deltaX = 0.006;
+    let deltaY = 0.002;
 
     function draw() {
         gl.uniform1f(uX1, x1);
@@ -127,12 +128,13 @@ function main (VERTEX_SHADER, FRAG_SHADER) {
         gl.uniform1f(uY1, y1);
         gl.uniform1f(uY2, y2);
         if (x2 >= 1.0 || y2 >= 1.0 || x1 < 0.0 || y1 < 0.0) {
-            delta = -delta;
+            deltaX = -deltaX;
+            deltaY = - deltaY;
         }
-        x1 += delta;
-        x2 += delta;
-        y1 += delta;
-        y2 += delta;
+        x1 += deltaX;
+        x2 += deltaX;
+        y1 += deltaY;
+        y2 += deltaY;
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         id = requestAnimationFrame(draw);
