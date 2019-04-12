@@ -140,23 +140,30 @@ function main(vertexShaderSource, fragShaderSource, i, src) {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
     image.onload = function () {
+        let newPos = new Float32Array([
+            0, canvas.height, 0.0, 0.0, 0.5, 1.0,
+            canvas.width / 2, canvas.height, 0.0, 0.0, 1.0, 1.0,
+            0, 0.0, 0.0, 0.0, 0.5, 0.0,
+            canvas.width / 2, 0, 0.0, 0.0, 1.0, 0.0,
+        ]);
+        gl.bufferData(gl.ARRAY_BUFFER, newPos, gl.STATIC_DRAW);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-        let image2 = new Image();
-        image2.src = '../assets/hc.jpg';
+    }
+    let image2 = new Image();
+    image2.src = '../assets/hc.jpg';
 
-        image2.onload = function () {
-            let newPos = new Float32Array([
-                0.0, canvas.height / 2, 0.0, 0.0, 0.0, 1.0,
-                canvas.width, canvas.height / 2, 0.0, 0.0, 1.0, 1.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                canvas.width, 0, 0.0, 0.0, 1.0, 0.0,
-            ]);
-            gl.bufferData(gl.ARRAY_BUFFER, newPos, gl.STATIC_DRAW);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image2);
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        }
+    image2.onload = function () {
+        let newPos = new Float32Array([
+            0.0, canvas.height / 2, 0.0, 0.0, 0.0, 1.0,
+            canvas.width, canvas.height / 2, 0.0, 0.0, 1.0, 1.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            canvas.width, 0, 0.0, 0.0, 1.0, 0.0,
+        ]);
+        gl.bufferData(gl.ARRAY_BUFFER, newPos, gl.STATIC_DRAW);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image2);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
     function setRotateUI () {
