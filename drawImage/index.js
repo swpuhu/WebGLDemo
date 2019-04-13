@@ -68,10 +68,10 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     gl.uniform2f(u_resolution, canvas.width, canvas.height);
 
     let uMask = new Float32Array([
-        0.0, 0.4, 0.2, 0.7,
-        0.0, 0.5, 0.6, 1.0,
-        0.0, 0.6, 0.3, 0.8,
-        0.0, 0.2, 0.0, 0.3,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
     ]);
 
     let u_mask = gl.getUniformLocation(gl.program, 'u_mask');
@@ -128,12 +128,6 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
             _sHeight = imageHeight - sy;
             _dHeight = _sHeight / sHeight * dHeight;
         }
-        // if (dWidth > sWidth) {
-        //     dWidth = sWidth;
-        // }
-        // if (dHeight > sHeight) {
-        //     dHeight = sHeight;
-        // }
         let position = new Float32Array([
             dx, dy + _dHeight, 0.0, 0.0, sx / imageWidth, (sy + _sHeight) / imageHeight,
             dx + _dWidth, dy + _dHeight, 0.0, 0.0, (sx + _sWidth) / imageWidth, (sy + _sHeight) / imageHeight,
@@ -150,20 +144,53 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
+    gl.drawImage = function () {
+        if (arguments.length === 3) {
+            /**
+             * @params image, dx, dy
+             */
+            gl.drawImage1(...arguments);
+
+        } else if (arguments.length === 5) {
+            /**
+             * @params image dx, dy, dWidth, dHeight
+             */
+            gl.drawImage1(...arguments);
+        } else if (arguments.length === 9) {
+            /**
+             * @params image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight
+             */
+            gl.drawImage2(...arguments);
+        } else {
+            throw new Error('参数个数错误！');
+        }
+    }
+
+    /**
+     * @param {Array} matrix
+     */
+    function setMask (matrix) {
+        uMask = new Float32Array(matrix);
+        gl.uniformMatrix4fv(u_mask, false, uMask);
+    }
+
+    gl.setMask = setMask;
+
     return gl;
 }
 
 
 
-function test() {
-    let canvas = document.createElement('canvas');
-    canvas.width = 640;
-    canvas.height = 360;
-    document.body.appendChild(canvas);
+let canvas = document.createElement('canvas');
+canvas.width = 640;
+canvas.height = 360;
+document.body.appendChild(canvas);
 
-    let gl = getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER);
-    gl.clearColor(1.0, 1.0, 0.0, 0.8);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+let gl = getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER);
+gl.clearColor(1.0, 1.0, 0.0, 0.8);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+function test() {
 
     let image = new Image();
     image.src = '../assets/hc.jpg';
@@ -189,8 +216,7 @@ function test() {
         hls.loadSource('../assets/u0027cffhts.321002.ts.m3u8');
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-            console.log(data);
-            video.play();
+
         });
         hls.on(Hls.Events.LEVEL_LOADED, function (event, data) {
             console.log(data.details.totalduration);
@@ -211,8 +237,8 @@ function test() {
 
 
     video.oncanplaythrough = function () {
-        gl.drawImage2(video, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-        ctx.drawImage(video, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+        gl.drawImage(video, 0, 0);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
 
     let button = document.createElement('button');
@@ -222,8 +248,8 @@ function test() {
     let id;
 
     function draw() {
-        gl.drawImage2(video, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-        ctx.drawImage(video, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+        gl.drawImage(video, 0, 0);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         id = requestAnimationFrame(draw);
     }
 
@@ -240,4 +266,33 @@ function test() {
 
 }
 
+function testSetMask () {
+    let setMask = document.createElement('button');
+    setMask.innerText = 'setMask';
+    document.body.appendChild(setMask);
+
+    setMask.onclick = function () {
+        gl.setMask([
+            0.0, 0.4, 0.2, 0.7,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+        ]);
+    }
+
+    let cancel = document.createElement('button');
+    cancel.innerText = 'cancelMask';
+    document.body.appendChild(cancel);
+
+    cancel.onclick = function () {
+        gl.setMask([
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+        ]);
+    }
+}
+
 test();
+testSetMask();
