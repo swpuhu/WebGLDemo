@@ -95,6 +95,7 @@ function createScaleMatrix(scaleX, scaleY) {
     ]);
 }
 
+
 export default {
   createShader, createProgram, createProgramBySource,
   createRotateMatrix, createTranslateMatrix, createScaleMatrix
