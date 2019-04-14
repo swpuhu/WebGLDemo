@@ -11,19 +11,44 @@ const VERTEX_SHADER = `
     }
 `;
 
+// const FRAG_SHADER = `
+//     precision mediump float;
+//     uniform sampler2D u_texture;
+//     varying vec2 v_texCoord;
+//     uniform mat4 u_mask;
+//     void main () {
+//         mat4 totalMask = u_mask;
+//         for (int i = 0; i < 4; i++) {
+//             if (v_texCoord.x >= totalMask[i].x && v_texCoord.x <= totalMask[i].y && v_texCoord.y >= totalMask[i].z && v_texCoord.y <= totalMask[i].w) {
+//                 float dY = totalMask[i].w - totalMask[i].z;
+//                 float offsetY = v_texCoord.y - totalMask[i].z;
+//                 vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, totalMask[i].z));
+//                 vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, totalMask[i].w));
+
+
+//                 gl_FragColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
+//                 break;
+//             } else {
+//                 gl_FragColor = texture2D(u_texture, v_texCoord);
+//             }
+//         }
+
+//     }
+// `;
+
+
 const FRAG_SHADER = `
     precision mediump float;
     uniform sampler2D u_texture;
     varying vec2 v_texCoord;
-    uniform mat4 u_mask;
+    uniform float u_mask[32];
     void main () {
-        mat4 totalMask = u_mask;
-        for (int i = 0; i < 4; i++) {
-            if (v_texCoord.x >= totalMask[i].x && v_texCoord.x <= totalMask[i].y && v_texCoord.y >= totalMask[i].z && v_texCoord.y <= totalMask[i].w) {
-                float dY = totalMask[i].w - totalMask[i].z;
-                float offsetY = v_texCoord.y - totalMask[i].z;
-                vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, totalMask[i].z));
-                vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, totalMask[i].w));
+        for (int i = 0; i < 32; i += 4) {
+            if (v_texCoord.x >= u_mask[i] && v_texCoord.x <= u_mask[i + 1] && v_texCoord.y >= u_mask[i + 2] && v_texCoord.y <= u_mask[i + 3]) {
+                float dY = u_mask[i + 3] - u_mask[i + 2];
+                float offsetY = v_texCoord.y - u_mask[i + 2];
+                vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 2]));
+                vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 3]));
 
 
                 gl_FragColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
@@ -35,7 +60,6 @@ const FRAG_SHADER = `
 
     }
 `;
-
 
 
 
@@ -74,8 +98,8 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         0.0, 0.0, 0.0, 0.0,
     ]);
 
-    let u_mask = gl.getUniformLocation(gl.program, 'u_mask');
-    gl.uniformMatrix4fv(u_mask, false, uMask);
+    let u_mask = gl.getUniformLocation(gl.program, 'u_mask[0]');
+    // gl.uniformMatrix4fv(u_mask, false, uMask);
 
     gl.drawImage1 = function (image, dx, dy, dWidth, dHeight) {
         let position;
@@ -169,9 +193,24 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     /**
      * @param {Array} matrix
      */
-    function setMask (matrix) {
-        uMask = new Float32Array(matrix);
-        gl.uniformMatrix4fv(u_mask, false, uMask);
+    function setMask (mask) {
+        let arr = [];
+        if (mask.length % 4 !== 0) {
+            throw new Error('数据数量错误！');
+        }
+        if (mask.length < 32) {
+            arr.concat(mask);
+            for(let i = 0; i < 32 - mask.length; i++) {
+                arr.push(0);
+            }
+            uMask = new Float32Array(arr);
+        } else if (mask.length > 32) {
+            mask = mask.slice(0, 32);
+        } else {
+            uMask = new Float32Array(mask);
+        }
+
+        gl.uniform1fv(u_mask, mask);
     }
 
     gl.setMask = setMask;
@@ -211,30 +250,20 @@ function test() {
     window.video = video;
     video.crossOrigin = 'anonymous';
     video.controls = true;
-    if (Hls.isSupported()) {
-        let hls = new Hls();
-        hls.loadSource('../assets/u0027cffhts.321002.ts.m3u8');
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+    // if (Hls.isSupported()) {
+    //     let hls = new Hls();
+    //     hls.loadSource('../assets/result.m3u8');
+    //     hls.attachMedia(video);
+    //     hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
 
-        });
-        hls.on(Hls.Events.LEVEL_LOADED, function (event, data) {
-            console.log(data.details.totalduration);
-        })
-    }
+    //     });
+    //     hls.on(Hls.Events.LEVEL_LOADED, function (event, data) {
+    //         console.log(data.details.totalduration);
+    //     })
+    // }
     // let video = window.video = document.createElement('video');
-    // video.src = 'http://lmbsy.qq.com/flv/73/89/i0201oyl32u.p201.1.mp4?platform=10201&vkey=9C52B39F7131B7E09F7A949B9817454A64E4A68BEDA453B2A2512CB672EBF64E88DA5740C12CAAC256265A4195EBE799AA60F84AF01BE68B50656D2663436DBDC56A403E21F98AD645FDF6CDC7974C017A0B38568059A646626BDC49D2394AF6E1F40C41A932C9C1DD86D5A65778FF5FB625E26154113ED3&fmt=shd&sdtfrom=&level=0';
+    video.src = 'http://lmbsy.qq.com/flv/73/89/i0201oyl32u.p201.1.mp4?platform=10201&vkey=9C52B39F7131B7E09F7A949B9817454A64E4A68BEDA453B2A2512CB672EBF64E88DA5740C12CAAC256265A4195EBE799AA60F84AF01BE68B50656D2663436DBDC56A403E21F98AD645FDF6CDC7974C017A0B38568059A646626BDC49D2394AF6E1F40C41A932C9C1DD86D5A65778FF5FB625E26154113ED3&fmt=shd&sdtfrom=&level=0';
     // video.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
-
-    let sx = 0;
-    let sy = 0;
-    let sWidth = 848;
-    let sHeight = 480;
-    let dx = 0;
-    let dy = 0;
-    let dWidth = 640;
-    let dHeight = 360;
-
 
     video.oncanplaythrough = function () {
         gl.drawImage(video, 0, 0);
@@ -274,9 +303,11 @@ function testSetMask () {
     setMask.onclick = function () {
         gl.setMask([
             0.0, 0.4, 0.2, 0.7,
-            0.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.0,
+            0.8, 1.0, 0.2, 0.7,
+            0.1, 0.5, 0.3, 0.7,
+            0.2, 0.6, 0.6, 0.9,
+            0.1, 0.5, 0.0, 0.2,
+            0.6, 0.9, 0.3, 0.8,
         ]);
     }
 
