@@ -20,6 +20,7 @@ const FRAG_SHADER = `
     uniform sampler2D u_texture;
     varying vec2 v_texCoord;
     uniform float u_mask[32];
+    uniform float u_alpha;
     void main () {
         for (int i = 0; i < 32; i += 4) {
             if (v_texCoord.x >= u_mask[i] && v_texCoord.x <= u_mask[i + 1] && v_texCoord.y >= u_mask[i + 2] && v_texCoord.y <= u_mask[i + 3]) {
@@ -29,10 +30,11 @@ const FRAG_SHADER = `
                 vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 3]));
 
 
-                gl_FragColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
+                vec4 midColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
+                gl_FragColor = vec4(midColor.rgb, u_alpha);
                 break;
             } else {
-                gl_FragColor = texture2D(u_texture, v_texCoord);
+                gl_FragColor = vec4(texture2D(u_texture, v_texCoord).rgb, u_alpha);
             }
         }
 
@@ -48,7 +50,8 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     let gl = canvas.getContext('webgl', {
         preserveDrawingBuffer: true
     });
-    window.gl = gl;
+    gl.enable(gl.BLEND);
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
     util.createProgramBySource(gl, VERTEX_SHADER, FRAG_SHADER);
     let buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -87,9 +90,12 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         0.0, 0.0, 0.0, 0.0,
         0.0, 0.0, 0.0, 0.0,
     ]);
-
     let u_mask = gl.getUniformLocation(gl.program, 'u_mask[0]');
-    // gl.uniformMatrix4fv(u_mask, false, uMask);
+    gl.uniform1fv(u_mask, uMask);
+
+    let u_alpha = gl.getUniformLocation(gl.program, 'u_alpha');
+    let alpha = 1.0;
+    gl.uniform1f(u_alpha, alpha);
 
     gl.drawImage1 = function (image, dx, dy, dWidth, dHeight) {
         let position;
@@ -189,9 +195,9 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
             throw new Error('数据数量错误！');
         }
         if (mask.length < 32) {
-            arr.concat(mask);
+            arr = arr.concat(mask);
             for(let i = 0; i < 32 - mask.length; i++) {
-                arr.push(0);
+                arr.push(0.0);
             }
             uMask = new Float32Array(arr);
         } else if (mask.length > 32) {
@@ -200,42 +206,50 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
             uMask = new Float32Array(mask);
         }
 
-        gl.uniform1fv(u_mask, mask);
+        gl.uniform1fv(u_mask, uMask);
     }
 
 
-    function setTranslate(tx, ty) {
+    function setTranslate(tx = 0, ty = 0) {
         let translateMatrix = util.createTranslateMatrix(tx, ty);
         gl.uniformMatrix4fv(u_translate, false, translateMatrix);
     }
 
-    function setRotate(rotate, center = {x: canvas.width / 2, y: canvas.height / 2}) {
+    function setRotate(rotate = 0, center = {x: canvas.width / 2, y: canvas.height / 2}) {
         let rotateMatrix = util.createRotateMatrix(center, rotate);
         gl.uniformMatrix4fv(u_rotate, false, rotateMatrix);
     }
 
-    function setScale (sx, sy) {
+    function setScale (sx = 1, sy = 1) {
         let scaleMatrix = util.createScaleMatrix(sx, sy, {x: canvas.width / 2, y: canvas.height / 2});
         gl.uniformMatrix4fv(u_scale, false, scaleMatrix);
+    }
+
+    function setAlpha(alpha = 1) {
+        gl.uniform1f(u_alpha, alpha);
+
     }
 
     gl.setScale = setScale;
     gl.setRotate = setRotate;
     gl.setTranslate = setTranslate;
     gl.setMask = setMask;
+    gl.setAlpha = setAlpha;
 
     return gl;
 }
 
 
-
+let wrapper = document.createElement('div');
+wrapper.style.cssText = 'background: url(\'../assets/hc.jpg\')'
 let canvas = document.createElement('canvas');
+wrapper.appendChild(canvas);
 canvas.width = 640;
 canvas.height = 360;
-document.body.appendChild(canvas);
+document.body.appendChild(wrapper);
 
 let gl = getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER);
-gl.clearColor(1.0, 1.0, 1.0, 1.0);
+gl.clearColor(0.0, 0.0, 0.0, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
 function test() {
@@ -273,6 +287,16 @@ function test() {
     // let video = window.video = document.createElement('video');
     video.src = 'http://lmbsy.qq.com/flv/73/89/i0201oyl32u.p201.1.mp4?platform=10201&vkey=9C52B39F7131B7E09F7A949B9817454A64E4A68BEDA453B2A2512CB672EBF64E88DA5740C12CAAC256265A4195EBE799AA60F84AF01BE68B50656D2663436DBDC56A403E21F98AD645FDF6CDC7974C017A0B38568059A646626BDC49D2394AF6E1F40C41A932C9C1DD86D5A65778FF5FB625E26154113ED3&fmt=shd&sdtfrom=&level=0';
     // video.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
+    let video2 = document.createElement('video');
+    window.video2 = video2;
+    video2.crossOrigin = 'anonymous';
+    video.controls = true;
+    video2.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
+    video2.loop = true;
+
+    video2.oncanplaythrough = function () {
+        gl.drawImage(video2, 0, 0, video2.videoWidth, video2.videoHeight, 200, 50, 500, 600);
+    }
 
     video.oncanplaythrough = function () {
         gl.drawImage(video, 0, 0);
@@ -288,7 +312,25 @@ function test() {
 
     function draw() {
         gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.setTranslate(video.translateX, video.translateY);
+        gl.setRotate(video.rotate);
+        gl.setScale(video.scaleX, video.scaleY);
+        gl.setMask([
+            0.0, 0.4, 0.2, 0.7,
+            0.8, 1.0, 0.2, 0.7,
+            0.1, 0.5, 0.3, 0.7,
+            0.2, 0.6, 0.6, 0.9,
+            0.1, 0.5, 0.0, 0.2,
+            0.6, 0.9, 0.3, 0.8,
+        ]);
+        gl.setAlpha(video.alpha);
         gl.drawImage(video, 0, 0);
+        gl.setTranslate(video2.translateX, video2.translateY);
+        gl.setRotate(video2.rotate);
+        gl.setScale(video2.scaleX, video2.scaleY);
+        gl.setMask([0.0, 0.0, 0.0, 0.0]);
+        gl.setAlpha(video2.alpha);
+        gl.drawImage(video2, 0, 0);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         id = requestAnimationFrame(draw);
     }
@@ -297,6 +339,7 @@ function test() {
     button.onmousedown = function () {
         if (video.paused) {
             video.play();
+            video2.play();
             draw();
         } else {
             video.pause();
@@ -335,69 +378,103 @@ function testSetMask () {
         ]);
     }
 
-    let groups = document.createElement('div');
-    let translateX = document.createElement('input');
-    translateX.type = 'range';
-    translateX.min = -canvas.width;
-    translateX.max = canvas.width;
-    translateX.value = 0;
+    function createUI(obj) {
+        let groups = document.createElement('div');
+        let translateX = document.createElement('input');
+        translateX.type = 'range';
+        translateX.min = -canvas.width;
+        translateX.max = canvas.width;
+        translateX.value = 0;
 
-    let translateY = document.createElement('input');
-    translateY.type = 'range';
-    translateY.min = -canvas.height;
-    translateY.max = canvas.height;
-    translateY.value = 0;
+        let translateY = document.createElement('input');
+        translateY.type = 'range';
+        translateY.min = -canvas.height;
+        translateY.max = canvas.height;
+        translateY.value = 0;
 
-    let rotate = document.createElement('input');
-    rotate.type = 'range';
-    rotate.min = -180;
-    rotate.max = 180;
-    rotate.value = 0;
+        let rotate = document.createElement('input');
+        rotate.type = 'range';
+        rotate.min = -180;
+        rotate.max = 180;
+        rotate.value = 0;
 
 
-    let scaleX = document.createElement('input');
-    scaleX.step = 0.1;
-    scaleX.type = 'range';
-    scaleX.min = 0.1;
-    scaleX.max = 5;
-    scaleX.value = 1;
+        let scaleX = document.createElement('input');
+        scaleX.step = 0.1;
+        scaleX.type = 'range';
+        scaleX.min = 0.1;
+        scaleX.max = 5;
+        scaleX.value = 1;
 
-    let scaleY = document.createElement('input');
-    scaleY.step = 0.1;
-    scaleY.type = 'range';
-    scaleY.min = 0.1;
-    scaleY.max = 5;
-    scaleY.value = 1;
+        let scaleY = document.createElement('input');
+        scaleY.step = 0.1;
+        scaleY.type = 'range';
+        scaleY.min = 0.1;
+        scaleY.max = 5;
+        scaleY.value = 1;
 
-    translateX.oninput = function () {
-        gl.setTranslate(+translateX.value, +translateY.value);
+        let alpha = document.createElement('input');
+        alpha.step = 0.02;
+        alpha.type = 'range';
+        alpha.min = 0;
+        alpha.max = 1;
+        alpha.value = 1;
+
+        translateX.oninput = function () {
+            obj.translateX = +this.value;
+        }
+
+        translateY.oninput = function () {
+            obj.translateY = +this.value;
+        }
+
+        rotate.oninput = function () {
+            obj.rotate = +this.value;
+        }
+
+        scaleX.oninput = function () {
+            obj.scaleX = +this.value;
+        }
+
+        scaleY.oninput = function () {
+            obj.scaleY = +this.value;
+        }
+
+        alpha.oninput = function () {
+            obj.alpha = +this.value;
+        }
+        let labelTranslateX = document.createElement('label');
+        labelTranslateX.innerText = 'translateX';
+        let labelTranslateY = document.createElement('label');
+        labelTranslateY.innerText = 'translateY';
+        let labelRotate = document.createElement('label');
+        labelRotate.innerText = 'rotate';
+        let labelScaleX = document.createElement('label');
+        labelScaleX.innerText = 'scaleX';
+        let labelScaleY = document.createElement('label');
+        labelScaleY.innerText = 'scaleY';
+        let labelAlpha = document.createElement('label');
+        labelAlpha.innerText = 'alpha';
+        groups.appendChild(labelTranslateX);
+        groups.appendChild(translateX);
+        groups.appendChild(labelTranslateY);
+        groups.appendChild(translateY);
+        groups.appendChild(labelRotate);
+        groups.appendChild(rotate);
+        groups.appendChild(labelScaleX);
+        groups.appendChild(scaleX);
+        groups.appendChild(labelScaleY);
+        groups.appendChild(scaleY);
+        groups.appendChild(labelAlpha);
+        groups.appendChild(alpha);
+        return groups;
     }
 
-    translateY.oninput = function () {
-        gl.setTranslate(+translateX.value, +translateY.value);
-    }
-    
-    rotate.oninput = function () {
-        gl.setRotate(rotate.value);
-    }
+    let group1 = createUI(video);
+    let group2 = createUI(video2);
 
-    scaleX.oninput = function () {
-        gl.setScale(+scaleX.value, +scaleY.value);
-    }
-
-    scaleY.oninput = function () {
-        gl.setScale(+scaleX.value, +scaleY.value);
-    }
-
-    groups.appendChild(translateX);
-    groups.appendChild(translateY);
-    groups.appendChild(rotate);
-    groups.appendChild(scaleX);
-    groups.appendChild(scaleY);
-    
-    
-
-    document.body.appendChild(groups);
+    document.body.appendChild(group1);
+    document.body.appendChild(group2);
 }
 
 test();
