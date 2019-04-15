@@ -5,36 +5,14 @@ const VERTEX_SHADER = `
     attribute vec2 a_texCoord;
     varying vec2 v_texCoord;
     uniform vec2 u_resolution;
+    uniform mat4 u_translate;
+    uniform mat4 u_rotate;
+    uniform mat4 u_scale;
     void main () {
-        gl_Position = (a_position / vec4(u_resolution, 1.0, 1.0) * 2.0 - 1.0) * vec4(1, -1, 1, 1);
+        gl_Position = (u_translate * u_rotate * u_scale * a_position / vec4(u_resolution, 1.0, 1.0) * 2.0 - 1.0) * vec4(1, -1, 1, 1);
         v_texCoord = a_texCoord;
     }
 `;
-
-// const FRAG_SHADER = `
-//     precision mediump float;
-//     uniform sampler2D u_texture;
-//     varying vec2 v_texCoord;
-//     uniform mat4 u_mask;
-//     void main () {
-//         mat4 totalMask = u_mask;
-//         for (int i = 0; i < 4; i++) {
-//             if (v_texCoord.x >= totalMask[i].x && v_texCoord.x <= totalMask[i].y && v_texCoord.y >= totalMask[i].z && v_texCoord.y <= totalMask[i].w) {
-//                 float dY = totalMask[i].w - totalMask[i].z;
-//                 float offsetY = v_texCoord.y - totalMask[i].z;
-//                 vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, totalMask[i].z));
-//                 vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, totalMask[i].w));
-
-
-//                 gl_FragColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
-//                 break;
-//             } else {
-//                 gl_FragColor = texture2D(u_texture, v_texCoord);
-//             }
-//         }
-
-//     }
-// `;
 
 
 const FRAG_SHADER = `
@@ -90,6 +68,18 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
 
     let u_resolution = gl.getUniformLocation(gl.program, 'u_resolution');
     gl.uniform2f(u_resolution, canvas.width, canvas.height);
+
+    let u_translate = gl.getUniformLocation(gl.program, 'u_translate');
+    let translateMatrix = util.createTranslateMatrix(0, 0);
+    gl.uniformMatrix4fv(u_translate, false, translateMatrix);
+
+    let u_rotate = gl.getUniformLocation(gl.program, 'u_rotate');
+    let rotateMatrix = util.createRotateMatrix({x: 0, y: 0}, 0);
+    gl.uniformMatrix4fv(u_rotate, false, rotateMatrix);
+
+    let u_scale = gl.getUniformLocation(gl.program, 'u_scale');
+    let scaleMatrix = util.createScaleMatrix(1, 1);
+    gl.uniformMatrix4fv(u_scale, false, scaleMatrix);
 
     let uMask = new Float32Array([
         0.0, 0.0, 0.0, 0.0,
@@ -213,6 +203,25 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         gl.uniform1fv(u_mask, mask);
     }
 
+
+    function setTranslate(tx, ty) {
+        let translateMatrix = util.createTranslateMatrix(tx, ty);
+        gl.uniformMatrix4fv(u_translate, false, translateMatrix);
+    }
+
+    function setRotate(rotate, center = {x: canvas.width / 2, y: canvas.height / 2}) {
+        let rotateMatrix = util.createRotateMatrix(center, rotate);
+        gl.uniformMatrix4fv(u_rotate, false, rotateMatrix);
+    }
+
+    function setScale (sx, sy) {
+        let scaleMatrix = util.createScaleMatrix(sx, sy, {x: canvas.width / 2, y: canvas.height / 2});
+        gl.uniformMatrix4fv(u_scale, false, scaleMatrix);
+    }
+
+    gl.setScale = setScale;
+    gl.setRotate = setRotate;
+    gl.setTranslate = setTranslate;
     gl.setMask = setMask;
 
     return gl;
@@ -226,7 +235,7 @@ canvas.height = 360;
 document.body.appendChild(canvas);
 
 let gl = getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER);
-gl.clearColor(1.0, 1.0, 0.0, 0.8);
+gl.clearColor(1.0, 1.0, 1.0, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
 function test() {
@@ -269,6 +278,7 @@ function test() {
         gl.drawImage(video, 0, 0);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
+    video.loop = true;
 
     let button = document.createElement('button');
     button.innerText = 'play';
@@ -277,6 +287,7 @@ function test() {
     let id;
 
     function draw() {
+        gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawImage(video, 0, 0);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         id = requestAnimationFrame(draw);
@@ -323,6 +334,70 @@ function testSetMask () {
             0.0, 0.0, 0.0, 0.0,
         ]);
     }
+
+    let groups = document.createElement('div');
+    let translateX = document.createElement('input');
+    translateX.type = 'range';
+    translateX.min = -canvas.width;
+    translateX.max = canvas.width;
+    translateX.value = 0;
+
+    let translateY = document.createElement('input');
+    translateY.type = 'range';
+    translateY.min = -canvas.height;
+    translateY.max = canvas.height;
+    translateY.value = 0;
+
+    let rotate = document.createElement('input');
+    rotate.type = 'range';
+    rotate.min = -180;
+    rotate.max = 180;
+    rotate.value = 0;
+
+
+    let scaleX = document.createElement('input');
+    scaleX.step = 0.1;
+    scaleX.type = 'range';
+    scaleX.min = 0.1;
+    scaleX.max = 5;
+    scaleX.value = 1;
+
+    let scaleY = document.createElement('input');
+    scaleY.step = 0.1;
+    scaleY.type = 'range';
+    scaleY.min = 0.1;
+    scaleY.max = 5;
+    scaleY.value = 1;
+
+    translateX.oninput = function () {
+        gl.setTranslate(+translateX.value, +translateY.value);
+    }
+
+    translateY.oninput = function () {
+        gl.setTranslate(+translateX.value, +translateY.value);
+    }
+    
+    rotate.oninput = function () {
+        gl.setRotate(rotate.value);
+    }
+
+    scaleX.oninput = function () {
+        gl.setScale(+scaleX.value, +scaleY.value);
+    }
+
+    scaleY.oninput = function () {
+        gl.setScale(+scaleX.value, +scaleY.value);
+    }
+
+    groups.appendChild(translateX);
+    groups.appendChild(translateY);
+    groups.appendChild(rotate);
+    groups.appendChild(scaleX);
+    groups.appendChild(scaleY);
+    
+    
+
+    document.body.appendChild(groups);
 }
 
 test();
