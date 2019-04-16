@@ -19,24 +19,35 @@ const FRAG_SHADER = `
     precision mediump float;
     uniform sampler2D u_texture;
     varying vec2 v_texCoord;
-    uniform float u_mask[32];
+    uniform float u_mask[40];
     uniform float u_alpha;
+    uniform mat4 u_hueRotate;
+    uniform float u_contrast;
     void main () {
-        for (int i = 0; i < 32; i += 4) {
+        vec3 color;
+        for (int i = 0; i < 40; i += 5) {
             if (v_texCoord.x >= u_mask[i] && v_texCoord.x <= u_mask[i + 1] && v_texCoord.y >= u_mask[i + 2] && v_texCoord.y <= u_mask[i + 3]) {
-                float dY = u_mask[i + 3] - u_mask[i + 2];
-                float offsetY = v_texCoord.y - u_mask[i + 2];
-                vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 2]));
-                vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 3]));
-
-
-                vec4 midColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
-                gl_FragColor = vec4(midColor.rgb, u_alpha);
+                if (u_mask[i + 4] == 1.0) {
+                    float dX = u_mask[i + 1] - u_mask[i];
+                    float offsetX = v_texCoord.x - u_mask[i];
+                    vec4 up_texCoord = texture2D(u_texture, vec2(u_mask[i], v_texCoord.y));
+                    vec4 bottom_texCoord = texture2D(u_texture, vec2(u_mask[i + 1], v_texCoord.y));
+                    vec4 midColor = up_texCoord * (1.0 - offsetX / dX) + bottom_texCoord * offsetX / dX;
+                    color = midColor.rgb;
+                } else {
+                    float dY = u_mask[i + 3] - u_mask[i + 2];
+                    float offsetY = v_texCoord.y - u_mask[i + 2];
+                    vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 2]));
+                    vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 3]));
+                    vec4 midColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
+                    color = midColor.rgb;
+                }
                 break;
             } else {
-                gl_FragColor = vec4(texture2D(u_texture, v_texCoord).rgb, u_alpha);
+                color = texture2D(u_texture, v_texCoord).rgb;
             }
         }
+        gl_FragColor = u_hueRotate * vec4((color - 0.5) * u_contrast + 0.5, u_alpha);
 
     }
 `;
@@ -83,6 +94,14 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     let u_scale = gl.getUniformLocation(gl.program, 'u_scale');
     let scaleMatrix = util.createScaleMatrix(1, 1);
     gl.uniformMatrix4fv(u_scale, false, scaleMatrix);
+
+    let u_hueRotate = gl.getUniformLocation(gl.program, 'u_hueRotate');
+    let hueRotate = util.createRotateMatrix({x: 0, y: 0}, 0);
+    gl.uniformMatrix4fv(u_hueRotate, false, hueRotate);
+
+
+    let u_contrast = gl.getUniformLocation(gl.program, 'u_contrast');
+    gl.uniform1f(u_contrast, 1.0);
 
     let uMask = new Float32Array([
         0.0, 0.0, 0.0, 0.0,
@@ -189,18 +208,18 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     /**
      * @param {Array} matrix
      */
-    function setMask (mask) {
+    function setMask (mask = []) {
         let arr = [];
-        if (mask.length % 4 !== 0) {
+        if (mask.length % 5 !== 0) {
             throw new Error('数据数量错误！');
         }
-        if (mask.length < 32) {
+        if (mask.length < 40) {
             arr = arr.concat(mask);
-            for(let i = 0; i < 32 - mask.length; i++) {
+            for(let i = 0; i < 40 - mask.length; i++) {
                 arr.push(0.0);
             }
             uMask = new Float32Array(arr);
-        } else if (mask.length > 32) {
+        } else if (mask.length > 40) {
             mask = mask.slice(0, 32);
         } else {
             uMask = new Float32Array(mask);
@@ -227,14 +246,40 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
 
     function setAlpha(alpha = 1) {
         gl.uniform1f(u_alpha, alpha);
-
     }
 
-    gl.setScale = setScale;
-    gl.setRotate = setRotate;
-    gl.setTranslate = setTranslate;
-    gl.setMask = setMask;
-    gl.setAlpha = setAlpha;
+    function setHue(hue = 0) {
+        let matrix = util.createRotateMatrix({x: 0, y: 0}, hue);
+        gl.uniformMatrix4fv(u_hueRotate, false, matrix);
+    }
+
+    function setContrast (contrast = 1) {
+        gl.uniform1f(u_contrast, contrast);
+    }
+
+    Object.defineProperties(gl, {
+        setScale: {
+            value: setScale
+        },
+        setRotate: {
+            value: setRotate
+        },
+        setTranslate: {
+            value: setTranslate
+        },
+        setMask: {
+            value: setMask
+        },
+        setAlpha: {
+            value: setAlpha
+        },
+        setHue: {
+            value: setHue
+        },
+        setContrast: {
+            value: setContrast
+        }
+    });
 
     return gl;
 }
@@ -259,8 +304,8 @@ function test() {
     image.src = '../assets/hc.jpg';
 
     let canvas2d = document.createElement('canvas');
-    canvas2d.width = 640 * 5 ;
-    canvas2d.height = 360 * 5;
+    canvas2d.width = 640;
+    canvas2d.height = 360;
     document.body.appendChild(canvas2d);
     let ctx = canvas2d.getContext('2d');
 
@@ -316,21 +361,18 @@ function test() {
         gl.setTranslate(video.translateX, video.translateY);
         gl.setRotate(video.rotate);
         gl.setScale(video.scaleX, video.scaleY);
-        gl.setMask([
-            0.0, 0.4, 0.2, 0.7,
-            0.8, 1.0, 0.2, 0.7,
-            0.1, 0.5, 0.3, 0.7,
-            0.2, 0.6, 0.6, 0.9,
-            0.1, 0.5, 0.0, 0.2,
-            0.6, 0.9, 0.3, 0.8,
-        ]);
         gl.setAlpha(video.alpha);
+        gl.setMask(video.mask);
+        gl.setHue(video.hue);
+        gl.setContrast(video.contrast);
         gl.drawImage(video, 0, 0);
         gl.setTranslate(video2.translateX, video2.translateY);
         gl.setRotate(video2.rotate);
         gl.setScale(video2.scaleX, video2.scaleY);
-        gl.setMask([0.0, 0.0, 0.0, 0.0]);
+        gl.setMask([0.0, 0.0, 0.0, 0.0, 1]);
         gl.setAlpha(video2.alpha);
+        gl.setHue(video2.hue);
+        gl.setContrast(video2.contrast);
         gl.drawImage(video2, 0, 0);
         ctx.drawImage(video, 0, 0, canvas2d.width, canvas2d.height);
         ctx.drawImage(video2, 0, 0, video2.videoWidth, video2.videoHeight,200, 100, canvas2d.width, canvas2d.height);
@@ -357,14 +399,14 @@ function testSetMask () {
     document.body.appendChild(setMask);
 
     setMask.onclick = function () {
-        gl.setMask([
-            0.0, 0.4, 0.2, 0.7,
-            0.8, 1.0, 0.2, 0.7,
-            0.1, 0.5, 0.3, 0.7,
-            0.2, 0.6, 0.6, 0.9,
-            0.1, 0.5, 0.0, 0.2,
-            0.6, 0.9, 0.3, 0.8,
-        ]);
+        video.mask = [
+            0.0, 0.4, 0.2, 0.7, 1,
+            0.8, 1.0, 0.2, 0.7, 1,
+            0.1, 0.5, 0.3, 0.7, 2,
+            0.2, 0.6, 0.6, 0.9, 2,
+            0.1, 0.5, 0.0, 0.2, 1,
+            0.6, 0.9, 0.3, 0.8, 1,
+        ];
     }
 
     let cancel = document.createElement('button');
@@ -372,12 +414,12 @@ function testSetMask () {
     document.body.appendChild(cancel);
 
     cancel.onclick = function () {
-        gl.setMask([
-            0.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0, 0.0,
-        ]);
+        video.mask = [
+            0.0, 0.0, 0.0, 0.0, 1,
+            0.0, 0.0, 0.0, 0.0, 1,
+            0.0, 0.0, 0.0, 0.0, 1,
+            0.0, 0.0, 0.0, 0.0, 1,
+        ];
     }
 
     function createUI(obj) {
@@ -422,6 +464,20 @@ function testSetMask () {
         alpha.max = 1;
         alpha.value = 1;
 
+        let hue = document.createElement('input');
+        hue.type = 'range';
+        hue.min = -180;
+        hue.max = 180;
+        hue.value = 0;
+
+
+        let contrast = document.createElement('input');
+        contrast.type = 'range';
+        contrast.step = 0.02;
+        contrast.min = 0;
+        contrast.max = 5;
+        contrast.value = 1;
+
         translateX.oninput = function () {
             obj.translateX = +this.value;
         }
@@ -445,6 +501,15 @@ function testSetMask () {
         alpha.oninput = function () {
             obj.alpha = +this.value;
         }
+
+        hue.oninput = function () {
+            obj.hue = +this.value;
+        }
+
+        contrast.oninput = function () {
+            obj.contrast = +this.value;
+        }
+
         let labelTranslateX = document.createElement('label');
         labelTranslateX.innerText = 'translateX';
         let labelTranslateY = document.createElement('label');
@@ -457,26 +522,61 @@ function testSetMask () {
         labelScaleY.innerText = 'scaleY';
         let labelAlpha = document.createElement('label');
         labelAlpha.innerText = 'alpha';
-        groups.appendChild(labelTranslateX);
-        groups.appendChild(translateX);
-        groups.appendChild(labelTranslateY);
-        groups.appendChild(translateY);
-        groups.appendChild(labelRotate);
-        groups.appendChild(rotate);
-        groups.appendChild(labelScaleX);
-        groups.appendChild(scaleX);
-        groups.appendChild(labelScaleY);
-        groups.appendChild(scaleY);
-        groups.appendChild(labelAlpha);
-        groups.appendChild(alpha);
+        let labelHue = document.createElement('label');
+        labelHue.innerText = 'hue';
+        let labelContrast = document.createElement('label');
+        labelContrast.innerText = 'contrast';
+
+        let translateXWrapper = document.createElement('div');
+        let translateYWrapper = document.createElement('div');
+        let rotateWrapper = document.createElement('div');
+        let scaleXWrapper = document.createElement('div');
+        let scaleYWrapper = document.createElement('div');
+        let alphaWrapper = document.createElement('div');
+        let hueWrapper = document.createElement('div');
+        let contrastWrapper = document.createElement('div');
+
+        translateXWrapper.appendChild(labelTranslateX);
+        translateXWrapper.appendChild(translateX);
+        translateYWrapper.appendChild(labelTranslateY);
+        translateYWrapper.appendChild(translateY);
+        rotateWrapper.appendChild(labelRotate);
+        rotateWrapper.appendChild(rotate);
+        scaleXWrapper.appendChild(labelScaleX);
+        scaleXWrapper.appendChild(scaleX);
+        scaleYWrapper.appendChild(labelScaleY);
+        scaleYWrapper.appendChild(scaleY);
+        alphaWrapper.appendChild(labelAlpha);
+        alphaWrapper.appendChild(alpha);
+        hueWrapper.appendChild(labelHue);
+        hueWrapper.appendChild(hue);
+        contrastWrapper.appendChild(labelContrast);
+        contrastWrapper.appendChild(contrast);
+
+
+        groups.appendChild(translateXWrapper);
+        groups.appendChild(translateYWrapper);
+        groups.appendChild(rotateWrapper);
+        groups.appendChild(scaleXWrapper);
+        groups.appendChild(scaleYWrapper);
+        groups.appendChild(alphaWrapper);
+        groups.appendChild(hueWrapper);
+        groups.appendChild(contrastWrapper);
+        groups.style.cssText = `
+            margin: 0 15px;
+        `;
         return groups;
     }
 
+    let groups = document.createElement('div');
     let group1 = createUI(video);
     let group2 = createUI(video2);
-
-    document.body.appendChild(group1);
-    document.body.appendChild(group2);
+    groups.appendChild(group1);
+    groups.appendChild(group2);
+    groups.style.cssText = `
+        display: flex;
+    `
+    document.body.appendChild(groups);
 }
 
 test();
