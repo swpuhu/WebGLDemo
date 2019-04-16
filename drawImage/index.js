@@ -249,6 +249,7 @@ canvas.height = 360;
 document.body.appendChild(wrapper);
 
 let gl = getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER);
+gl.viewport(0, 0, canvas.width, canvas.height);
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -258,8 +259,8 @@ function test() {
     image.src = '../assets/hc.jpg';
 
     let canvas2d = document.createElement('canvas');
-    canvas2d.width = 640;
-    canvas2d.height = 360;
+    canvas2d.width = 640 * 5 ;
+    canvas2d.height = 360 * 5;
     document.body.appendChild(canvas2d);
     let ctx = canvas2d.getContext('2d');
 
@@ -300,7 +301,7 @@ function test() {
 
     video.oncanplaythrough = function () {
         gl.drawImage(video, 0, 0);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas2d.width, canvas2d.height);
     }
     video.loop = true;
 
@@ -331,7 +332,8 @@ function test() {
         gl.setMask([0.0, 0.0, 0.0, 0.0]);
         gl.setAlpha(video2.alpha);
         gl.drawImage(video2, 0, 0);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas2d.width, canvas2d.height);
+        ctx.drawImage(video2, 0, 0, video2.videoWidth, video2.videoHeight,200, 100, canvas2d.width, canvas2d.height);
         id = requestAnimationFrame(draw);
     }
 
