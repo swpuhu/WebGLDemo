@@ -95,8 +95,49 @@ function createScaleMatrix(scaleX, scaleY, center = {x: 0, y: 0}) {
     ]);
 }
 
+/**
+ * @desc 对比度矩阵
+ * @param {Number} value 
+ */
+function createContrastMatrix(value) {
+  return new Float32Array([
+    value, 0.0, 0.0, 0.0,
+    0.0, value, 0.0, 0.0,
+    0.0, 0.0, value, 0.0,
+    0.5 * (1 - value), 0.5 * (1 - value), 0.5 * (1 - value), 1.0,
+  ]);
+}
+
+
+/**
+ * @desc 色相旋转矩阵
+ * @param {Number} value 
+ */
+function createHueRotateMatrix(value) {
+  let sin = Math.sin(value * Math.PI / 180);
+  let cos = Math.cos(value * Math.PI / 180);
+  return new Float32Array([
+    0.213 + cos * 0.787 - sin * 0.213, 0.213 - cos * 0.213 + sin * 0.143, 0.213 - cos * 0.213 - sin * 0.787, 0.0,
+    0.715 - cos * 0.715 - sin * 0.715, 0.715 + cos * 0.285 + sin * 0.140, 0.715 - cos * 0.715 + sin * 0.715, 0.0,
+    0.072 - cos * 0.072 + sin * 0.928, 0.072 - cos * 0.072 - sin * 0.283, 0.072 + cos * 0.928 + sin * 0.072, 0.0,
+    0.0, 0.0, 0.0, 1.0,
+  ]);
+}
+
+/**
+ * 
+ * @param {Number} x 中心x坐标
+ * @param {Number} y 中心y坐标
+ * @param {Number} radius 圆弧半径
+ * @param {Number} arc 弧度
+ * @param {Boolean} clockwise 方向，默认顺时针
+ */
+function createArcVertex(x, y, radius, arc, clockwise = true) {
+
+}
 
 export default {
   createShader, createProgram, createProgramBySource,
-  createRotateMatrix, createTranslateMatrix, createScaleMatrix
+  createRotateMatrix, createTranslateMatrix, createScaleMatrix,
+  createContrastMatrix, createHueRotateMatrix, createArcVertex
 }
