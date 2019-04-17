@@ -354,7 +354,7 @@ function test() {
     button.innerText = 'play';
     document.body.appendChild(button);
 
-    let id;
+    let id2;
 
     function draw() {
         gl.clear(gl.COLOR_BUFFER_BIT);
