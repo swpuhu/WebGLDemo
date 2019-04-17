@@ -97,7 +97,7 @@ function createScaleMatrix(scaleX, scaleY, center = {x: 0, y: 0}) {
 
 /**
  * @desc 对比度矩阵
- * @param {Number} value 
+ * @param {Number} value
  */
 function createContrastMatrix(value) {
   return new Float32Array([
@@ -111,7 +111,7 @@ function createContrastMatrix(value) {
 
 /**
  * @desc 色相旋转矩阵
- * @param {Number} value 
+ * @param {Number} value
  */
 function createHueRotateMatrix(value) {
   let sin = Math.sin(value * Math.PI / 180);
@@ -125,15 +125,26 @@ function createHueRotateMatrix(value) {
 }
 
 /**
- * 
+ * @param {WebGLRenderingContext} gl
  * @param {Number} x 中心x坐标
  * @param {Number} y 中心y坐标
- * @param {Number} radius 圆弧半径
- * @param {Number} arc 弧度
+ * @param {radius} radius 圆弧半径
+ * @param {Number} startArc 起始圆弧半径
+ * @param {Number} endArc 终止圆弧半径
  * @param {Boolean} clockwise 方向，默认顺时针
  */
-function createArcVertex(x, y, radius, arc, clockwise = true) {
-
+function createArcVertex(gl, x, y, radius, startArc, endArc, clockwise = true) {
+    let precision = 1;
+    let oneArc = Math.PI / 180
+    let points = [x, y, x / gl.canvas.width, y / gl.canvas.height];
+    for (let i = startArc; i <= endArc; i += precision) {
+        points.push(
+        x + radius * Math.sin(i * oneArc),
+        (y - radius * Math.cos(i * oneArc)),
+        (x + radius * Math.sin(i * oneArc)) / gl.canvas.width,
+        (y - radius * Math.cos(i * oneArc)) / gl.canvas.height);
+    }
+    return new Float32Array(points);
 }
 
 export default {

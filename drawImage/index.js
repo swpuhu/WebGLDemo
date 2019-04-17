@@ -55,7 +55,7 @@ const FRAG_SHADER = `
         } else {
             gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
         }
-        
+
 
     }
 `;
@@ -96,7 +96,10 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     gl.uniformMatrix4fv(u_translate, false, translateMatrix);
 
     let u_rotate = gl.getUniformLocation(gl.program, 'u_rotate');
-    let rotateMatrix = util.createRotateMatrix({x: 0, y: 0}, 0);
+    let rotateMatrix = util.createRotateMatrix({
+        x: 0,
+        y: 0
+    }, 0);
     gl.uniformMatrix4fv(u_rotate, false, rotateMatrix);
 
     let u_scale = gl.getUniformLocation(gl.program, 'u_scale');
@@ -129,17 +132,25 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         let position;
         if (dWidth && dHeight) {
             position = new Float32Array([
-                dx, dy + dHeight, 0.0, 0.0, 0.0, dHeight / canvas.height,
-                dx + dWidth, dy + dHeight, 0.0, 0.0, dWidth / canvas.width, dHeight / canvas.height,
-                dx, dy, 0.0, 0.0, 0.0, 0.0,
-                dx + dWidth, dy, 0.0, 0.0, dWidth / canvas.width, 0.0,
+                dx, dy + dHeight, 0.0, 1.0, 0.0, dHeight / canvas.height,
+                dx + dWidth, dy + dHeight, 0.0, 1.0, dWidth / canvas.width, dHeight / canvas.height,
+                dx, dy, 0.0, 1.0, 0.0, 0.0,
+                dx + dWidth, dy, 1.0, 0.0, dWidth / canvas.width, 0.0,
             ]);
         } else if (!dWidth && !dHeight) {
+            let imageWidth, imageHeight;
+            if (Object.prototype.toString.call(image) === '[object HTMLVideoElement]') {
+                imageWidth = image.videoWidth;
+                imageHeight = image.videoHeight;
+            } else {
+                imageWidth = image.width;
+                imageHeight = image.height;
+            }
             position = new Float32Array([
-                dx, dy + canvas.height, 0.0, 0.0, 0.0, 1.0,
-                dx + canvas.width, dy + canvas.height, 0.0, 0.0, 1.0, 1.0,
-                dx, dy, 0.0, 0.0, 0.0, 0.0,
-                dx + canvas.width, dy, 0.0, 0.0, 1.0, 0.0,
+                dx, dy + imageHeight, 0.0, 1.0, 0.0, 1.0,
+                dx + imageWidth, dy + imageHeight, 0.0, 1.0, 1.0, 1.0,
+                dx, dy, 0.0, 1.0, 0.0, 0.0,
+                dx + imageWidth, dy, 0.0, 1.0, 1.0, 0.0,
             ]);
         } else {
             throw new Error('参数个数错误');
@@ -177,10 +188,10 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         //     _dHeight = _sHeight / sHeight * dHeight;
         // }
         let position = new Float32Array([
-            dx, dy + _dHeight, 0.0, 0.0, sx / imageWidth, (sy + _sHeight) / imageHeight,
-            dx + _dWidth, dy + _dHeight, 0.0, 0.0, (sx + _sWidth) / imageWidth, (sy + _sHeight) / imageHeight,
-            dx, dy, 0.0, 0.0, sx / imageWidth, sy / imageHeight,
-            dx + _dWidth, dy, 0.0, 0.0, (sx + _sWidth) / imageWidth, sy / imageHeight,
+            dx, dy + _dHeight, 0.0, 1.0, sx / imageWidth, (sy + _sHeight) / imageHeight,
+            dx + _dWidth, dy + _dHeight, 0.0, 1.0, (sx + _sWidth) / imageWidth, (sy + _sHeight) / imageHeight,
+            dx, dy, 0.0, 1.0, sx / imageWidth, sy / imageHeight,
+            dx + _dWidth, dy, 0.0, 1.0, (sx + _sWidth) / imageWidth, sy / imageHeight,
         ]);
 
         let FSIZE = position.BYTES_PER_ELEMENT;
@@ -217,14 +228,14 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     /**
      * @param {Array} matrix
      */
-    function setMask (mask = []) {
+    function setMask(mask = []) {
         let arr = [];
         if (mask.length % 5 !== 0) {
             throw new Error('数据数量错误！');
         }
         if (mask.length < 40) {
             arr = arr.concat(mask);
-            for(let i = 0; i < 40 - mask.length; i++) {
+            for (let i = 0; i < 40 - mask.length; i++) {
                 arr.push(0.0);
             }
             uMask = new Float32Array(arr);
@@ -243,13 +254,19 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         gl.uniformMatrix4fv(u_translate, false, translateMatrix);
     }
 
-    function setRotate(rotate = 0, center = {x: canvas.width / 2, y: canvas.height / 2}) {
+    function setRotate(rotate = 0, center = {
+        x: canvas.width / 2,
+        y: canvas.height / 2
+    }) {
         let rotateMatrix = util.createRotateMatrix(center, rotate);
         gl.uniformMatrix4fv(u_rotate, false, rotateMatrix);
     }
 
-    function setScale (sx = 1, sy = 1) {
-        let scaleMatrix = util.createScaleMatrix(sx, sy, {x: canvas.width / 2, y: canvas.height / 2});
+    function setScale(sx = 1, sy = 1) {
+        let scaleMatrix = util.createScaleMatrix(sx, sy, {
+            x: canvas.width / 2,
+            y: canvas.height / 2
+        });
         gl.uniformMatrix4fv(u_scale, false, scaleMatrix);
     }
 
@@ -262,9 +279,28 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         gl.uniformMatrix4fv(u_hueRotate, false, matrix);
     }
 
-    function setContrast (contrast = 1) {
+    function setContrast(contrast = 1) {
         let matrix = util.createContrastMatrix(contrast);
         gl.uniformMatrix4fv(u_contrast, false, matrix);
+    }
+
+    /**
+     * @param {HTMLImageElement|HTMLVideoElement} image
+     * @param {Number} x 中心x坐标
+     * @param {Number} y 中心y坐标
+     * @param {radius} radius 圆弧半径
+     * @param {Number} startArc 起始圆弧半径
+     * @param {Number} endArc 终止圆弧半径
+     * @param {Boolean} clockwise 方向，默认顺时针
+     */
+    function drawArc(image, x, y, radius, startArc, endArc, clockwise = true) {
+        let vertices = util.createArcVertex(this, x, y, radius, startArc, endArc, clockwise);
+        let FSIZE = vertices.BYTES_PER_ELEMENT;
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, FSIZE * 4, 0);
+        gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false,  FSIZE * 4, FSIZE * 2);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length / 4);
     }
 
     Object.defineProperties(gl, {
@@ -288,6 +324,9 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         },
         setContrast: {
             value: setContrast
+        },
+        drawArc: {
+            value: drawArc
         }
     });
 
@@ -316,7 +355,7 @@ function test() {
     let canvas2d = document.createElement('canvas');
     canvas2d.width = 640;
     canvas2d.height = 360;
-    document.body.appendChild(canvas2d);
+    // document.body.appendChild(canvas2d);
     let ctx = canvas2d.getContext('2d');
 
     // image.onload = function () {
@@ -347,8 +386,8 @@ function test() {
     window.video2 = video2;
     video2.crossOrigin = 'anonymous';
     video.controls = true;
-    // video2.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
-    video2.src = 'http://rs6.hive.jove.com:86/buckets/u-4df8k43v6ymuw97l/2019/03/22/1581d32a9d424f97be3089593025de8b/%E5%A5%BD%E5%A3%B0%E9%9F%B3%E7%89%B9%E5%88%AB%E8%8A%82%E7%9B%AE_a79d72d7b7ec4f088fcf9e96a58146b2_low_video.mp4';
+    video2.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
+    // video2.src = 'http://rs6.hive.jove.com:86/buckets/u-4df8k43v6ymuw97l/2019/03/22/1581d32a9d424f97be3089593025de8b/%E5%A5%BD%E5%A3%B0%E9%9F%B3%E7%89%B9%E5%88%AB%E8%8A%82%E7%9B%AE_a79d72d7b7ec4f088fcf9e96a58146b2_low_video.mp4';
     video2.loop = true;
 
     video2.oncanplaythrough = function () {
@@ -365,7 +404,7 @@ function test() {
     button.innerText = 'play';
     document.body.appendChild(button);
 
-    let id2;
+    let id;
 
     function draw() {
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -376,7 +415,13 @@ function test() {
         gl.setMask(video.mask);
         gl.setHue(video.hue);
         gl.setContrast(video.contrast);
-        gl.drawImage(video, 0, 0);
+        if (video.clipPath) {
+            if (video.clipPath.type === 'circle') {
+                gl.drawArc(video, canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc);
+            }
+        } else {
+            gl.drawImage(video, 0, 0);
+        }
         gl.setTranslate(video2.translateX, video2.translateY);
         gl.setRotate(video2.rotate);
         gl.setScale(video2.scaleX, video2.scaleY);
@@ -384,9 +429,16 @@ function test() {
         gl.setAlpha(video2.alpha);
         gl.setHue(video2.hue);
         gl.setContrast(video2.contrast);
-        gl.drawImage(video2, 300, 300, 1000, 500, 0, 0, canvas.width, canvas.height);
+        if (video2.clipPath) {
+            if (video2.clipPath.type === 'circle') {
+                gl.drawArc(video2, canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc);
+            }
+        } else {
+            gl.drawImage(video2, 0, 0, canvas.width, canvas.height);
+        }
+        // gl.drawImage(video2, 300, 300, 1000, 500, 0, 0, canvas.width, canvas.height);
         ctx.drawImage(video, 0, 0, canvas2d.width, canvas2d.height);
-        ctx.drawImage(video2, 0, 0, video2.videoWidth, video2.videoHeight,200, 100, canvas2d.width, canvas2d.height);
+        ctx.drawImage(video2, 0, 0, video2.videoWidth, video2.videoHeight, 200, 100, canvas2d.width, canvas2d.height);
         id = requestAnimationFrame(draw);
     }
 
@@ -404,7 +456,7 @@ function test() {
 
 }
 
-function testSetMask () {
+function testSetMask() {
     let setMask = document.createElement('button');
     setMask.innerText = 'setMask';
     document.body.appendChild(setMask);
@@ -505,6 +557,76 @@ function testSetMask () {
         contrast.max = 5;
         contrast.value = 1;
 
+        let clipPath = document.createElement('div');
+        let clipPathTitle = document.createElement('h4');
+        clipPathTitle.innerText = '裁剪';
+        clipPath.appendChild(clipPathTitle);
+
+        let circle = document.createElement('div');
+        circle.classList.add('all-border');
+        let circleLabel = document.createElement('h5');
+        circleLabel.innerText = 'Circle';
+        circleLabel.classList.add('sub-title');
+        let circleCheckBox = document.createElement('input');
+        circleCheckBox.type = 'checkbox';
+
+        let radiusWrapper = document.createElement('div');
+        let radiusLabel = document.createElement('label');
+        radiusLabel.innerText = 'radius';
+        let radius = document.createElement('input');
+        radius.type = 'range';
+        radius.min = 0;
+        radius.max = canvas.width;
+        radius.value = canvas.height;
+        radiusWrapper.appendChild(radiusLabel);
+        radiusWrapper.appendChild(radius);
+
+        let startArcWrapper = document.createElement('div');
+        let startArcLabel = document.createElement('label');
+        startArcLabel.innerText = 'startArc';
+        let startArc = document.createElement('input');
+        startArc.type = 'range';
+        startArc.min = 0;
+        startArc.max = 360;
+        startArc.value = 0;
+        startArcWrapper.appendChild(startArcLabel);
+        startArcWrapper.appendChild(startArc);
+
+        let endArcWrapper = document.createElement('div');
+        let endArcLabel = document.createElement('label');
+        endArcLabel.innerText = 'endArc';
+        let endArc = document.createElement('input');
+        endArc.type = 'range';
+        endArc.min = 0;
+        endArc.max = 360;
+        endArc.value = 360;
+        endArcWrapper.appendChild(endArcLabel);
+        endArcWrapper.appendChild(endArc);
+        function setCircle () {
+            if (circleCheckBox.checked) {
+                obj.clipPath = {
+                    type: 'circle',
+                    radius: +radius.value,
+                    startArc: +startArc.value,
+                    endArc: +endArc.value
+                }
+            } else {
+                obj.clipPath = null;
+            }
+        }
+        circleCheckBox.onchange = setCircle;
+        radius.oninput = setCircle;
+        startArc.oninput = setCircle;
+        endArc.oninput = setCircle;
+
+        circle.appendChild(circleLabel);
+        circle.appendChild(circleCheckBox);
+        circle.appendChild(radiusWrapper);
+        circle.appendChild(startArcWrapper);
+        circle.appendChild(endArcWrapper);
+
+        clipPath.appendChild(circle);
+
         translateX.oninput = function () {
             obj.translateX = +this.value;
         }
@@ -589,6 +711,7 @@ function testSetMask () {
         groups.appendChild(alphaWrapper);
         groups.appendChild(hueWrapper);
         groups.appendChild(contrastWrapper);
+        groups.appendChild(clipPath);
         groups.style.cssText = `
             margin: 0 15px;
         `;
