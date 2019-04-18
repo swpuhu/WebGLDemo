@@ -23,6 +23,8 @@ const FRAG_SHADER = `
     uniform float u_alpha;
     uniform mat4 u_hueRotate;
     uniform mat4 u_contrast;
+    uniform float u_clipPath[40];
+    uniform int u_isCirlce;
     void main () {
         vec4 color;
         for (int i = 0; i < 40; i += 5) {
@@ -298,7 +300,7 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         let FSIZE = vertices.BYTES_PER_ELEMENT;
         gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
         gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, FSIZE * 4, 0);
-        gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false,  FSIZE * 4, FSIZE * 2);
+        gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false, FSIZE * 4, FSIZE * 2);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length / 4);
     }
@@ -344,7 +346,7 @@ document.body.appendChild(wrapper);
 
 let gl = getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER);
 gl.viewport(0, 0, canvas.width, canvas.height);
-gl.clearColor(0.0, 0.0, 0.0, 1.0);
+gl.clearColor(0.0, 0.0, 0.0, 0.0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
 function test() {
@@ -416,11 +418,15 @@ function test() {
         gl.setHue(video.hue);
         gl.setContrast(video.contrast);
         if (video.clipPath) {
-            if (video.clipPath.type === 'circle') {
-                gl.drawArc(video, canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc);
+            if (video.clipPath.mode === 0) {
+                if (video.clipPath.type === 'circle') {
+                    gl.drawArc(video, canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc);
+                }
+            } else if (video.clipPath.mode === 1) {
+
             }
         } else {
-            gl.drawImage(video, 0, 0);
+            gl.drawImage(video, 0, 0, canvas.width, canvas.height);
         }
         gl.setTranslate(video2.translateX, video2.translateY);
         gl.setRotate(video2.rotate);
@@ -501,221 +507,258 @@ function testSetMask() {
         ];
     }
 
+    function generateName(lastName) {
+        let name = String.fromCharCode(~~(Math.random() * 26 + 97));
+        if (lastName === name) {
+            generateName(lastName)
+        } else {
+            return name;
+        }
+    }
     function createUI(obj) {
-        let groups = document.createElement('div');
-        let translateX = document.createElement('input');
-        translateX.type = 'range';
-        translateX.min = -canvas.width;
-        translateX.max = canvas.width;
-        translateX.value = 0;
+        let lastName;
+        return (function () {
 
-        let translateY = document.createElement('input');
-        translateY.type = 'range';
-        translateY.min = -canvas.height;
-        translateY.max = canvas.height;
-        translateY.value = 0;
+            let groups = document.createElement('div');
+            let translateX = document.createElement('input');
+            translateX.type = 'range';
+            translateX.min = -canvas.width;
+            translateX.max = canvas.width;
+            translateX.value = 0;
 
-        let rotate = document.createElement('input');
-        rotate.type = 'range';
-        rotate.min = -180;
-        rotate.max = 180;
-        rotate.value = 0;
+            let translateY = document.createElement('input');
+            translateY.type = 'range';
+            translateY.min = -canvas.height;
+            translateY.max = canvas.height;
+            translateY.value = 0;
 
-
-        let scaleX = document.createElement('input');
-        scaleX.step = 0.1;
-        scaleX.type = 'range';
-        scaleX.min = 0.1;
-        scaleX.max = 5;
-        scaleX.value = 1;
-
-        let scaleY = document.createElement('input');
-        scaleY.step = 0.1;
-        scaleY.type = 'range';
-        scaleY.min = 0.1;
-        scaleY.max = 5;
-        scaleY.value = 1;
-
-        let alpha = document.createElement('input');
-        alpha.step = 0.02;
-        alpha.type = 'range';
-        alpha.min = 0;
-        alpha.max = 1;
-        alpha.value = 1;
-
-        let hue = document.createElement('input');
-        hue.type = 'range';
-        hue.min = -180;
-        hue.max = 180;
-        hue.value = 0;
+            let rotate = document.createElement('input');
+            rotate.type = 'range';
+            rotate.min = -180;
+            rotate.max = 180;
+            rotate.value = 0;
 
 
-        let contrast = document.createElement('input');
-        contrast.type = 'range';
-        contrast.step = 0.02;
-        contrast.min = 0;
-        contrast.max = 5;
-        contrast.value = 1;
+            let scaleX = document.createElement('input');
+            scaleX.step = 0.1;
+            scaleX.type = 'range';
+            scaleX.min = 0.1;
+            scaleX.max = 5;
+            scaleX.value = 1;
 
-        let clipPath = document.createElement('div');
-        let clipPathTitle = document.createElement('h4');
-        clipPathTitle.innerText = '裁剪';
-        clipPath.appendChild(clipPathTitle);
+            let scaleY = document.createElement('input');
+            scaleY.step = 0.1;
+            scaleY.type = 'range';
+            scaleY.min = 0.1;
+            scaleY.max = 5;
+            scaleY.value = 1;
 
-        let circle = document.createElement('div');
-        circle.classList.add('all-border');
-        let circleLabel = document.createElement('h5');
-        circleLabel.innerText = 'Circle';
-        circleLabel.classList.add('sub-title');
-        let circleCheckBox = document.createElement('input');
-        circleCheckBox.type = 'checkbox';
+            let alpha = document.createElement('input');
+            alpha.step = 0.02;
+            alpha.type = 'text';
+            alpha.min = 0;
+            alpha.max = 1;
+            alpha.value = 1;
 
-        let radiusWrapper = document.createElement('div');
-        let radiusLabel = document.createElement('label');
-        radiusLabel.innerText = 'radius';
-        let radius = document.createElement('input');
-        radius.type = 'range';
-        radius.min = 0;
-        radius.max = canvas.width;
-        radius.value = canvas.height;
-        radiusWrapper.appendChild(radiusLabel);
-        radiusWrapper.appendChild(radius);
+            let hue = document.createElement('input');
+            hue.type = 'range';
+            hue.min = -180;
+            hue.max = 180;
+            hue.value = 0;
 
-        let startArcWrapper = document.createElement('div');
-        let startArcLabel = document.createElement('label');
-        startArcLabel.innerText = 'startArc';
-        let startArc = document.createElement('input');
-        startArc.type = 'range';
-        startArc.min = 0;
-        startArc.max = 360;
-        startArc.value = 0;
-        startArcWrapper.appendChild(startArcLabel);
-        startArcWrapper.appendChild(startArc);
 
-        let endArcWrapper = document.createElement('div');
-        let endArcLabel = document.createElement('label');
-        endArcLabel.innerText = 'endArc';
-        let endArc = document.createElement('input');
-        endArc.type = 'range';
-        endArc.min = 0;
-        endArc.max = 360;
-        endArc.value = 360;
-        endArcWrapper.appendChild(endArcLabel);
-        endArcWrapper.appendChild(endArc);
-        function setCircle () {
-            if (circleCheckBox.checked) {
-                obj.clipPath = {
-                    type: 'circle',
-                    radius: +radius.value,
-                    startArc: +startArc.value,
-                    endArc: +endArc.value
+            let contrast = document.createElement('input');
+            contrast.type = 'range';
+            contrast.step = 0.02;
+            contrast.min = 0;
+            contrast.max = 5;
+            contrast.value = 1;
+
+            let clipPath = document.createElement('div');
+            let clipPathTitle = document.createElement('h4');
+            clipPathTitle.innerText = '裁剪';
+            clipPath.appendChild(clipPathTitle);
+
+            let circle = document.createElement('div');
+            circle.classList.add('all-border');
+            let circleLabel = document.createElement('h5');
+            circleLabel.innerText = 'Circle';
+            circleLabel.classList.add('sub-title');
+
+            let name = generateName(lastName);
+            let circleCheckBox = document.createElement('input');
+            circleCheckBox.type = 'radio';
+            circleCheckBox.name = name;
+
+            let circleCheckBox2 = document.createElement('input');
+            circleCheckBox2.type = 'radio';
+            circleCheckBox2.name = name;
+
+            let circleCheckBox3 = document.createElement('input');
+            circleCheckBox3.type = 'radio';
+            circleCheckBox3.name = name;
+
+            let radiusWrapper = document.createElement('div');
+            let radiusLabel = document.createElement('label');
+            radiusLabel.innerText = 'radius';
+            let radius = document.createElement('input');
+            radius.type = 'range';
+            radius.min = 0;
+            radius.max = canvas.width;
+            radius.value = canvas.height;
+            radiusWrapper.appendChild(radiusLabel);
+            radiusWrapper.appendChild(radius);
+
+            let startArcWrapper = document.createElement('div');
+            let startArcLabel = document.createElement('label');
+            startArcLabel.innerText = 'startArc';
+            let startArc = document.createElement('input');
+            startArc.type = 'range';
+            startArc.min = 0;
+            startArc.max = 360;
+            startArc.value = 0;
+            startArcWrapper.appendChild(startArcLabel);
+            startArcWrapper.appendChild(startArc);
+
+            let endArcWrapper = document.createElement('div');
+            let endArcLabel = document.createElement('label');
+            endArcLabel.innerText = 'endArc';
+            let endArc = document.createElement('input');
+            endArc.type = 'range';
+            endArc.min = 0;
+            endArc.max = 360;
+            endArc.value = 360;
+            endArcWrapper.appendChild(endArcLabel);
+            endArcWrapper.appendChild(endArc);
+
+            function setCircle(e) {
+                if (circleCheckBox.checked) {
+                    obj.clipPath = {
+                        mode: 0,
+                        type: 'circle',
+                        radius: +radius.value,
+                        startArc: +startArc.value,
+                        endArc: +endArc.value
+                    }
+                } else if (circleCheckBox2.checked) {
+                    obj.clipPath = {
+                        mode: 1,
+                        type: 'circle',
+                        radius: +radius.value,
+                        startArc: +startArc.value,
+                        endArc: +endArc.value
+                    }
+                } else {
+                    obj.clipPath = null;
                 }
-            } else {
-                obj.clipPath = null;
             }
-        }
-        circleCheckBox.onchange = setCircle;
-        radius.oninput = setCircle;
-        startArc.oninput = setCircle;
-        endArc.oninput = setCircle;
+            circleCheckBox.onchange = setCircle;
+            circleCheckBox2.onchange = setCircle;
+            circleCheckBox3.onchange = setCircle;
+            radius.oninput = setCircle;
+            startArc.oninput = setCircle;
+            endArc.oninput = setCircle;
 
-        circle.appendChild(circleLabel);
-        circle.appendChild(circleCheckBox);
-        circle.appendChild(radiusWrapper);
-        circle.appendChild(startArcWrapper);
-        circle.appendChild(endArcWrapper);
+            circle.appendChild(circleLabel);
+            circle.appendChild(circleCheckBox);
+            circle.appendChild(circleCheckBox2);
+            circle.appendChild(circleCheckBox3);
+            circle.appendChild(radiusWrapper);
+            circle.appendChild(startArcWrapper);
+            circle.appendChild(endArcWrapper);
 
-        clipPath.appendChild(circle);
+            clipPath.appendChild(circle);
 
-        translateX.oninput = function () {
-            obj.translateX = +this.value;
-        }
+            translateX.oninput = function () {
+                obj.translateX = +this.value;
+            }
 
-        translateY.oninput = function () {
-            obj.translateY = +this.value;
-        }
+            translateY.oninput = function () {
+                obj.translateY = +this.value;
+            }
 
-        rotate.oninput = function () {
-            obj.rotate = +this.value;
-        }
+            rotate.oninput = function () {
+                obj.rotate = +this.value;
+            }
 
-        scaleX.oninput = function () {
-            obj.scaleX = +this.value;
-        }
+            scaleX.oninput = function () {
+                obj.scaleX = +this.value;
+            }
 
-        scaleY.oninput = function () {
-            obj.scaleY = +this.value;
-        }
+            scaleY.oninput = function () {
+                obj.scaleY = +this.value;
+            }
 
-        alpha.oninput = function () {
-            obj.alpha = +this.value;
-        }
+            alpha.oninput = function () {
+                obj.alpha = +this.value;
+            }
 
-        hue.oninput = function () {
-            obj.hue = +this.value;
-        }
+            hue.oninput = function () {
+                obj.hue = +this.value;
+            }
 
-        contrast.oninput = function () {
-            obj.contrast = +this.value;
-        }
+            contrast.oninput = function () {
+                obj.contrast = +this.value;
+            }
 
-        let labelTranslateX = document.createElement('label');
-        labelTranslateX.innerText = 'translateX';
-        let labelTranslateY = document.createElement('label');
-        labelTranslateY.innerText = 'translateY';
-        let labelRotate = document.createElement('label');
-        labelRotate.innerText = 'rotate';
-        let labelScaleX = document.createElement('label');
-        labelScaleX.innerText = 'scaleX';
-        let labelScaleY = document.createElement('label');
-        labelScaleY.innerText = 'scaleY';
-        let labelAlpha = document.createElement('label');
-        labelAlpha.innerText = 'alpha';
-        let labelHue = document.createElement('label');
-        labelHue.innerText = 'hue';
-        let labelContrast = document.createElement('label');
-        labelContrast.innerText = 'contrast';
+            let labelTranslateX = document.createElement('label');
+            labelTranslateX.innerText = 'translateX';
+            let labelTranslateY = document.createElement('label');
+            labelTranslateY.innerText = 'translateY';
+            let labelRotate = document.createElement('label');
+            labelRotate.innerText = 'rotate';
+            let labelScaleX = document.createElement('label');
+            labelScaleX.innerText = 'scaleX';
+            let labelScaleY = document.createElement('label');
+            labelScaleY.innerText = 'scaleY';
+            let labelAlpha = document.createElement('label');
+            labelAlpha.innerText = 'alpha';
+            let labelHue = document.createElement('label');
+            labelHue.innerText = 'hue';
+            let labelContrast = document.createElement('label');
+            labelContrast.innerText = 'contrast';
 
-        let translateXWrapper = document.createElement('div');
-        let translateYWrapper = document.createElement('div');
-        let rotateWrapper = document.createElement('div');
-        let scaleXWrapper = document.createElement('div');
-        let scaleYWrapper = document.createElement('div');
-        let alphaWrapper = document.createElement('div');
-        let hueWrapper = document.createElement('div');
-        let contrastWrapper = document.createElement('div');
+            let translateXWrapper = document.createElement('div');
+            let translateYWrapper = document.createElement('div');
+            let rotateWrapper = document.createElement('div');
+            let scaleXWrapper = document.createElement('div');
+            let scaleYWrapper = document.createElement('div');
+            let alphaWrapper = document.createElement('div');
+            let hueWrapper = document.createElement('div');
+            let contrastWrapper = document.createElement('div');
 
-        translateXWrapper.appendChild(labelTranslateX);
-        translateXWrapper.appendChild(translateX);
-        translateYWrapper.appendChild(labelTranslateY);
-        translateYWrapper.appendChild(translateY);
-        rotateWrapper.appendChild(labelRotate);
-        rotateWrapper.appendChild(rotate);
-        scaleXWrapper.appendChild(labelScaleX);
-        scaleXWrapper.appendChild(scaleX);
-        scaleYWrapper.appendChild(labelScaleY);
-        scaleYWrapper.appendChild(scaleY);
-        alphaWrapper.appendChild(labelAlpha);
-        alphaWrapper.appendChild(alpha);
-        hueWrapper.appendChild(labelHue);
-        hueWrapper.appendChild(hue);
-        contrastWrapper.appendChild(labelContrast);
-        contrastWrapper.appendChild(contrast);
+            translateXWrapper.appendChild(labelTranslateX);
+            translateXWrapper.appendChild(translateX);
+            translateYWrapper.appendChild(labelTranslateY);
+            translateYWrapper.appendChild(translateY);
+            rotateWrapper.appendChild(labelRotate);
+            rotateWrapper.appendChild(rotate);
+            scaleXWrapper.appendChild(labelScaleX);
+            scaleXWrapper.appendChild(scaleX);
+            scaleYWrapper.appendChild(labelScaleY);
+            scaleYWrapper.appendChild(scaleY);
+            alphaWrapper.appendChild(labelAlpha);
+            alphaWrapper.appendChild(alpha);
+            hueWrapper.appendChild(labelHue);
+            hueWrapper.appendChild(hue);
+            contrastWrapper.appendChild(labelContrast);
+            contrastWrapper.appendChild(contrast);
 
 
-        groups.appendChild(translateXWrapper);
-        groups.appendChild(translateYWrapper);
-        groups.appendChild(rotateWrapper);
-        groups.appendChild(scaleXWrapper);
-        groups.appendChild(scaleYWrapper);
-        groups.appendChild(alphaWrapper);
-        groups.appendChild(hueWrapper);
-        groups.appendChild(contrastWrapper);
-        groups.appendChild(clipPath);
-        groups.style.cssText = `
+            groups.appendChild(translateXWrapper);
+            groups.appendChild(translateYWrapper);
+            groups.appendChild(rotateWrapper);
+            groups.appendChild(scaleXWrapper);
+            groups.appendChild(scaleYWrapper);
+            groups.appendChild(alphaWrapper);
+            groups.appendChild(hueWrapper);
+            groups.appendChild(contrastWrapper);
+            groups.appendChild(clipPath);
+            groups.style.cssText = `
             margin: 0 15px;
         `;
-        return groups;
+            return groups;
+        }());
     }
 
     let groups = document.createElement('div');
