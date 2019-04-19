@@ -8,8 +8,10 @@ const VERTEX_SHADER = `
     uniform mat4 u_translate;
     uniform mat4 u_rotate;
     uniform mat4 u_scale;
+    varying vec4 v_transPosition;
     void main () {
-        gl_Position = (u_translate * u_rotate * u_scale * a_position / vec4(u_resolution, 1.0, 1.0) * 2.0 - 1.0) * vec4(1, -1, 1, 1);
+        v_transPosition = u_translate * u_rotate * u_scale * a_position;
+        gl_Position = (v_transPosition / vec4(u_resolution, 1.0, 1.0) * 2.0 - 1.0) * vec4(1, -1, 1, 1);
         v_texCoord = a_texCoord;
     }
 `;
@@ -19,6 +21,7 @@ const FRAG_SHADER = `
     precision mediump float;
     uniform sampler2D u_texture;
     varying vec2 v_texCoord;
+    varying vec4 v_transPosition;
     uniform float u_mask[40];
     uniform float u_alpha;
     uniform mat4 u_hueRotate;
@@ -28,6 +31,7 @@ const FRAG_SHADER = `
     uniform vec2 u_texResolution;
     void main () {
         vec4 color;
+        vec2 p = v_transPosition.xy;
         for (int i = 0; i < 40; i += 5) {
             if (v_texCoord.x >= u_mask[i] && v_texCoord.x <= u_mask[i + 1] && v_texCoord.y >= u_mask[i + 2] && v_texCoord.y <= u_mask[i + 3]) {
                 if (u_mask[i + 4] == 1.0) {
@@ -57,30 +61,27 @@ const FRAG_SHADER = `
                 gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
         } else {
             if (u_isCircle == 1) {
-                if (pow(v_texCoord.x * u_texResolution.x - u_clipPath[0], 2.0) + pow(v_texCoord.y * u_texResolution.y - u_clipPath[1], 2.0) > pow(u_clipPath[2], 2.0)) {
+                float centerX = u_clipPath[0];
+                float centerY = u_clipPath[1];
+                float radius = u_clipPath[2];
+                float startArc = radians(u_clipPath[3]);
+                float endArc = radians(u_clipPath[4]);
+                float angle = endArc - startArc;
+                if (pow(p.x - centerX, 2.0) + pow(p.y - centerY, 2.0) > pow(radius, 2.0)) {
                     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
                 } else {
-                    gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
-                }
-                vec2 startPoint = vec2(u_clipPath[0] + sin(radians(u_clipPath[3])), u_clipPath[1] - cos(radians(u_clipPath[3])));
-                vec2 endPoint = vec2(u_clipPath[0] + sin(radians(u_clipPath[4])), u_clipPath[1] - cos(radians(u_clipPath[4])));
-                float angle = u_clipPath[4] - u_clipPath[3];
-                vec2 vector = vec2(v_texCoord.x - u_clipPath[0], v_texCoord.y - u_clipPath[1]);
-                vec2 startVector = vec2(startPoint.x - u_clipPath[0], startPoint.y - u_clipPath[1]);
-                float result;
-                if (vector.x * startVector.y - vector.y * startVector.x >= 0.0) {
-                    result = acos(dot(vector, startVector) / (sqrt(vector.x * vector.x + vector.y * vector.y) * sqrt(startVector.x * startVector.x + startVector.y * startVector.y)));
-                    if (result < 0.0) {
-                        result = radians(90.0) - result;
+                    vec2 startVector = vec2(radius * sin(startArc), -radius * cos(startArc));
+                    vec2 vector = vec2(p.x - centerX, p.y - centerY);
+                    float result = acos(dot(vector, startVector) / (length(vector) * length(startVector)));
+                    if (vector.x * startVector.y - vector.y * startVector.x > 0.0) {
+                        result = radians(360.0) - result;
                     }
-                } else {
-                    result = 2.0 * radians(360.0) - result;
-                    if (result < 0.0) {
-                        result = radians(270.0) + result;
+                    if (result > angle) {
+                        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+                    } else {
+                        gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
                     }
-                }
-                if (result > (angle)) {
-                    gl_FragColor = vec4(result, 0.0, 0.0, 1.0);
+                    
                 }
             } else {
                 gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
