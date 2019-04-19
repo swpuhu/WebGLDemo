@@ -24,7 +24,8 @@ const FRAG_SHADER = `
     uniform mat4 u_hueRotate;
     uniform mat4 u_contrast;
     uniform float u_clipPath[40];
-    uniform int u_isCirlce;
+    uniform int u_isCircle;
+    uniform vec2 u_texResolution;
     void main () {
         vec4 color;
         for (int i = 0; i < 40; i += 5) {
@@ -55,10 +56,36 @@ const FRAG_SHADER = `
             v_texCoord.y > 1.0) {
                 gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
         } else {
-            gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
+            if (u_isCircle == 1) {
+                if (pow(v_texCoord.x * u_texResolution.x - u_clipPath[0], 2.0) + pow(v_texCoord.y * u_texResolution.y - u_clipPath[1], 2.0) > pow(u_clipPath[2], 2.0)) {
+                    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+                } else {
+                    gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
+                }
+                vec2 startPoint = vec2(u_clipPath[0] + sin(radians(u_clipPath[3])), u_clipPath[1] - cos(radians(u_clipPath[3])));
+                vec2 endPoint = vec2(u_clipPath[0] + sin(radians(u_clipPath[4])), u_clipPath[1] - cos(radians(u_clipPath[4])));
+                float angle = u_clipPath[4] - u_clipPath[3];
+                vec2 vector = vec2(v_texCoord.x - u_clipPath[0], v_texCoord.y - u_clipPath[1]);
+                vec2 startVector = vec2(startPoint.x - u_clipPath[0], startPoint.y - u_clipPath[1]);
+                float result;
+                if (vector.x * startVector.y - vector.y * startVector.x >= 0.0) {
+                    result = acos(dot(vector, startVector) / (sqrt(vector.x * vector.x + vector.y * vector.y) * sqrt(startVector.x * startVector.x + startVector.y * startVector.y)));
+                    if (result < 0.0) {
+                        result = radians(90.0) - result;
+                    }
+                } else {
+                    result = 2.0 * radians(360.0) - result;
+                    if (result < 0.0) {
+                        result = radians(270.0) + result;
+                    }
+                }
+                if (result > (angle)) {
+                    gl_FragColor = vec4(result, 0.0, 0.0, 1.0);
+                }
+            } else {
+                gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
+            }
         }
-
-
     }
 `;
 
@@ -130,8 +157,28 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     let alpha = 1.0;
     gl.uniform1f(u_alpha, alpha);
 
+    let u_isCircle = gl.getUniformLocation(gl.program, 'u_isCircle');
+    gl.uniform1i(u_isCircle, 0);
+
+    let u_clipPath = gl.getUniformLocation(gl.program, 'u_clipPath[0]');
+    let clipPath = new Float32Array([
+        300, 300, 300, 0.0, 180.0
+    ]);
+    gl.uniform1fv(u_clipPath, clipPath);
+
+    let u_texResolution = gl.getUniformLocation(gl.program, 'u_texResolution');
+
     gl.drawImage1 = function (image, dx, dy, dWidth, dHeight) {
         let position;
+        let imageWidth, imageHeight;
+        if (Object.prototype.toString.call(image) === '[object HTMLVideoElement]') {
+            imageWidth = image.videoWidth;
+            imageHeight = image.videoHeight;
+        } else {
+            imageWidth = image.width;
+            imageHeight = image.height;
+        }
+        gl.uniform2f(u_texResolution, canvas.width, canvas.height);
         if (dWidth && dHeight) {
             position = new Float32Array([
                 dx, dy + dHeight, 0.0, 1.0, 0.0, dHeight / canvas.height,
@@ -140,14 +187,6 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
                 dx + dWidth, dy, 1.0, 0.0, dWidth / canvas.width, 0.0,
             ]);
         } else if (!dWidth && !dHeight) {
-            let imageWidth, imageHeight;
-            if (Object.prototype.toString.call(image) === '[object HTMLVideoElement]') {
-                imageWidth = image.videoWidth;
-                imageHeight = image.videoHeight;
-            } else {
-                imageWidth = image.width;
-                imageHeight = image.height;
-            }
             position = new Float32Array([
                 dx, dy + imageHeight, 0.0, 1.0, 0.0, 1.0,
                 dx + imageWidth, dy + imageHeight, 0.0, 1.0, 1.0, 1.0,
@@ -181,14 +220,7 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
             imageWidth = image.width;
             imageHeight = image.height;
         }
-        // if (sx + sWidth > imageWidth) {
-        //     _sWidth = imageWidth - sx;
-        //     _dWidth = _sWidth / sWidth * dWidth;
-        // }
-        // if (sy + sHeight > imageHeight) {
-        //     _sHeight = imageHeight - sy;
-        //     _dHeight = _sHeight / sHeight * dHeight;
-        // }
+        gl.uniform2f(u_texResolution, canvas.width, canvas.height);
         let position = new Float32Array([
             dx, dy + _dHeight, 0.0, 1.0, sx / imageWidth, (sy + _sHeight) / imageHeight,
             dx + _dWidth, dy + _dHeight, 0.0, 1.0, (sx + _sWidth) / imageWidth, (sy + _sHeight) / imageHeight,
@@ -286,6 +318,18 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         gl.uniformMatrix4fv(u_contrast, false, matrix);
     }
 
+    function setRound(x = canvas.width / 2, y = canvas.height / 2, radius = 800, startArc = 0, endArc = 360) {
+        gl.uniform1i(u_isCircle, 1);
+        clipPath = new Float32Array([
+            x, y, radius, startArc, endArc
+        ])
+        gl.uniform1fv(u_clipPath, clipPath);
+    }
+
+    function cancelRound() {
+        gl.uniform1i(u_isCircle, 2);
+    }
+
     /**
      * @param {HTMLImageElement|HTMLVideoElement} image
      * @param {Number} x 中心x坐标
@@ -326,6 +370,12 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         },
         setContrast: {
             value: setContrast
+        },
+        setRound: {
+            value: setRound
+        },
+        cancelRound: {
+            value: cancelRound
         },
         drawArc: {
             value: drawArc
@@ -382,7 +432,7 @@ function test() {
     //     })
     // }
     // let video = window.video = document.createElement('video');
-    video.src = 'http://lmbsy.qq.com/flv/73/89/i0201oyl32u.p201.1.mp4?platform=10201&vkey=9C52B39F7131B7E09F7A949B9817454A64E4A68BEDA453B2A2512CB672EBF64E88DA5740C12CAAC256265A4195EBE799AA60F84AF01BE68B50656D2663436DBDC56A403E21F98AD645FDF6CDC7974C017A0B38568059A646626BDC49D2394AF6E1F40C41A932C9C1DD86D5A65778FF5FB625E26154113ED3&fmt=shd&sdtfrom=&level=0';
+    video.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
     // video.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
     let video2 = document.createElement('video');
     window.video2 = video2;
@@ -420,14 +470,19 @@ function test() {
         if (video.clipPath) {
             if (video.clipPath.mode === 0) {
                 if (video.clipPath.type === 'circle') {
+                    gl.cancelRound();
                     gl.drawArc(video, canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc);
                 }
             } else if (video.clipPath.mode === 1) {
-
+                gl.setRound(canvas.width / 2, canvas.height / 2,  video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc);
+                gl.drawImage(video, 0, 0, canvas.width, canvas.height);
             }
         } else {
+            gl.cancelRound();
             gl.drawImage(video, 0, 0, canvas.width, canvas.height);
         }
+
+        gl.cancelRound();
         gl.setTranslate(video2.translateX, video2.translateY);
         gl.setRotate(video2.rotate);
         gl.setScale(video2.scaleX, video2.scaleY);
@@ -436,10 +491,18 @@ function test() {
         gl.setHue(video2.hue);
         gl.setContrast(video2.contrast);
         if (video2.clipPath) {
-            if (video2.clipPath.type === 'circle') {
-                gl.drawArc(video2, canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc);
+            if (video2.clipPath.mode === 0) {
+                if (video2.clipPath.type === 'circle') {
+                    gl.cancelRound();
+                    gl.drawArc(video2, canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc);
+                }
+            } else if (video2.clipPath.mode === 1) {
+                gl.setRound(canvas.width / 2, canvas.height / 2,  video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc);
+                gl.drawImage(video, 0, 0, canvas.width, canvas.height);
             }
+
         } else {
+            gl.cancelRound();
             gl.drawImage(video2, 0, 0, canvas.width, canvas.height);
         }
         // gl.drawImage(video2, 300, 300, 1000, 500, 0, 0, canvas.width, canvas.height);
@@ -555,7 +618,7 @@ function testSetMask() {
 
             let alpha = document.createElement('input');
             alpha.step = 0.02;
-            alpha.type = 'text';
+            alpha.type = 'range';
             alpha.min = 0;
             alpha.max = 1;
             alpha.value = 1;
@@ -652,9 +715,9 @@ function testSetMask() {
                     obj.clipPath = null;
                 }
             }
-            circleCheckBox.onchange = setCircle;
-            circleCheckBox2.onchange = setCircle;
-            circleCheckBox3.onchange = setCircle;
+            circleCheckBox.onclick = setCircle;
+            circleCheckBox2.onclick = setCircle;
+            circleCheckBox3.onclick = setCircle;
             radius.oninput = setCircle;
             startArc.oninput = setCircle;
             endArc.oninput = setCircle;
