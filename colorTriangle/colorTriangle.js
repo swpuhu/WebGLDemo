@@ -22,6 +22,11 @@ const FRAG_SHADER = `
         vec2 start = vec2(0.0, 1.0);
         float cosValue = dot(p, start) / (length(start) * length(p));
         float angle = acos(cosValue);
+        // if (angle > 0.0) {
+        //     gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        // } else {
+        //     gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+        // }
         if (p.x * start.y - p.y * start.x > 0.0) {
             if (angle > 0.0) {
                 if (cosValue < 0.0) {
