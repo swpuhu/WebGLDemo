@@ -1,13 +1,15 @@
-function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
+import getWebGLContext from './index.js';
+
+function test() {
     let wrapper = document.createElement('div');
     wrapper.style.cssText = 'background: url(\'../assets/hc.jpg\')'
     let canvas = document.createElement('canvas');
     wrapper.appendChild(canvas);
-    canvas.width = 640;
-    canvas.height = 360;
+    canvas.width = 640 * 2;
+    canvas.height = 360 * 2;
     document.body.appendChild(wrapper);
 
-    let gl = getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER);
+    let gl = getWebGLContext(canvas);
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -49,14 +51,14 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
     video2.crossOrigin = 'anonymous';
     video.controls = true;
     video2.src = 'http://vhoth.dnion.videocdn.qq.com/flv/107/117/a0201rs3lid.p201.1.mp4?fmt=shd&level=0&sdtfrom=&platform=10201&vkey=75088F3E0FF79CA2BB83B825245980A72A409A578571BEBA210CCF1AE333D52CD7115401C235AE4C3981EC4B78A91152EBF31789867B4AA36C689CA743555E4FC82B2C5EE462EF9EC2A96E6B3E7A12C692D6B8DDECD756585E9864EF6072C8C5AE4142B0CE94B85EB6786CD63096C9D927539B2CB4ACBB6A';
-    // video2.src = 'http://rs6.hive.jove.com:86/buckets/u-4df8k43v6ymuw97l/2019/03/22/1581d32a9d424f97be3089593025de8b/%E5%A5%BD%E5%A3%B0%E9%9F%B3%E7%89%B9%E5%88%AB%E8%8A%82%E7%9B%AE_a79d72d7b7ec4f088fcf9e96a58146b2_low_video.mp4';
+    // video2.src = 'http://gitee.com/swpuhu/media/raw/master/test1.mp4';
     video2.loop = true;
 
-    video2.oncanplaythrough = function () {
+    video2.oncanplaythrough = function() {
         gl.drawImage(video2, 0, 0, video2.videoWidth, video2.videoHeight, 200, 50, 500, 600);
     }
 
-    video.oncanplaythrough = function () {
+    video.oncanplaythrough = function() {
         gl.drawImage(video, 0, 0);
         ctx.drawImage(video, 0, 0, canvas2d.width, canvas2d.height);
     }
@@ -81,10 +83,10 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
             if (video.clipPath.mode === 0) {
                 if (video.clipPath.type === 'circle') {
                     gl.cancelRound();
-                    gl.drawArc(video, canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc);
+                    gl.drawArc(video, canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc, video.clipPath.isInverse);
                 }
             } else if (video.clipPath.mode === 1) {
-                gl.setRound(canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc);
+                gl.setRound(canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc, video.clipPath.isInverse);
                 gl.drawImage(video, 0, 0, canvas.width, canvas.height);
             }
         } else {
@@ -104,10 +106,10 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
             if (video2.clipPath.mode === 0) {
                 if (video2.clipPath.type === 'circle') {
                     gl.cancelRound();
-                    gl.drawArc(video2, canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc);
+                    gl.drawArc(video2, canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc, video2.clipPath.isInverse);
                 }
             } else if (video2.clipPath.mode === 1) {
-                gl.setRound(canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc);
+                gl.setRound(canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc, video2.clipPath.isInverse);
                 gl.drawImage(video2, 0, 0, canvas.width, canvas.height);
             }
 
@@ -122,7 +124,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
     }
 
 
-    button.onmousedown = function () {
+    button.onmousedown = function() {
         if (video.paused) {
             video.play();
             video2.play();
@@ -137,8 +139,8 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
         let setMask = document.createElement('button');
         setMask.innerText = 'setMask';
         document.body.appendChild(setMask);
-    
-        setMask.onclick = function () {
+
+        setMask.onclick = function() {
             video.mask = [
                 0.0, 0.4, 0.2, 0.7, 1,
                 0.8, 1.0, 0.2, 0.7, 1,
@@ -147,7 +149,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 0.1, 0.5, 0.0, 0.2, 1,
                 0.6, 0.9, 0.3, 0.8, 1,
             ];
-    
+
             video2.mask = [
                 0.0, 0.4, 0.2, 0.6, 1,
                 0.2, 0.5, 0.2, 0.7, 2,
@@ -157,19 +159,19 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 0.6, 0.9, 0.3, 0.8, 2,
             ];
         }
-    
+
         let cancel = document.createElement('button');
         cancel.innerText = 'cancelMask';
         document.body.appendChild(cancel);
-    
-        cancel.onclick = function () {
+
+        cancel.onclick = function() {
             video.mask = [
                 0.0, 0.0, 0.0, 0.0, 1,
                 0.0, 0.0, 0.0, 0.0, 1,
                 0.0, 0.0, 0.0, 0.0, 1,
                 0.0, 0.0, 0.0, 0.0, 1,
             ];
-    
+
             video2.mask = [
                 0.0, 0.0, 0.0, 0.0, 1,
                 0.0, 0.0, 0.0, 0.0, 1,
@@ -177,7 +179,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 0.0, 0.0, 0.0, 0.0, 1,
             ];
         }
-    
+
         function generateName(lastName) {
             let name = String.fromCharCode(~~(Math.random() * 26 + 97));
             if (lastName === name) {
@@ -186,90 +188,89 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 return name;
             }
         }
-    
+
         function createUI(obj) {
             let lastName;
-            return (function () {
-    
+            return (function() {
+
                 let groups = document.createElement('div');
                 let translateX = document.createElement('input');
                 translateX.type = 'range';
                 translateX.min = -canvas.width;
                 translateX.max = canvas.width;
                 translateX.value = 0;
-    
+
                 let translateY = document.createElement('input');
                 translateY.type = 'range';
                 translateY.min = -canvas.height;
                 translateY.max = canvas.height;
                 translateY.value = 0;
-    
+
                 let rotate = document.createElement('input');
                 rotate.type = 'range';
                 rotate.min = -180;
                 rotate.max = 180;
                 rotate.value = 0;
-    
-    
+
+
                 let scaleX = document.createElement('input');
                 scaleX.step = 0.1;
                 scaleX.type = 'range';
                 scaleX.min = 0.1;
                 scaleX.max = 5;
                 scaleX.value = 1;
-    
+
                 let scaleY = document.createElement('input');
                 scaleY.step = 0.1;
                 scaleY.type = 'range';
                 scaleY.min = 0.1;
                 scaleY.max = 5;
                 scaleY.value = 1;
-    
+
                 let alpha = document.createElement('input');
                 alpha.step = 0.02;
                 alpha.type = 'range';
                 alpha.min = 0;
                 alpha.max = 1;
                 alpha.value = 1;
-    
+
                 let hue = document.createElement('input');
                 hue.type = 'range';
                 hue.min = -180;
                 hue.max = 180;
                 hue.value = 0;
-    
-    
+
+
                 let contrast = document.createElement('input');
                 contrast.type = 'range';
                 contrast.step = 0.02;
                 contrast.min = 0;
                 contrast.max = 5;
                 contrast.value = 1;
-    
+
                 let clipPath = document.createElement('div');
                 let clipPathTitle = document.createElement('h4');
                 clipPathTitle.innerText = '裁剪';
                 clipPath.appendChild(clipPathTitle);
-    
+
                 let circle = document.createElement('div');
                 circle.classList.add('all-border');
                 let circleLabel = document.createElement('h5');
                 circleLabel.innerText = 'Circle';
                 circleLabel.classList.add('sub-title');
-    
+
                 let name = generateName(lastName);
                 let circleCheckBox = document.createElement('input');
                 circleCheckBox.type = 'radio';
                 circleCheckBox.name = name;
-    
+
                 let circleCheckBox2 = document.createElement('input');
                 circleCheckBox2.type = 'radio';
                 circleCheckBox2.name = name;
-    
+
                 let circleCheckBox3 = document.createElement('input');
-                circleCheckBox3.type = 'radio';
-                circleCheckBox3.name = name;
-    
+                circleCheckBox3.type = 'checkbox';
+
                 let radiusWrapper = document.createElement('div');
                 let radiusLabel = document.createElement('label');
                 radiusLabel.innerText = 'radius';
@@ -280,7 +281,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 radius.value = canvas.height;
                 radiusWrapper.appendChild(radiusLabel);
                 radiusWrapper.appendChild(radius);
-    
+
                 let startArcWrapper = document.createElement('div');
                 let startArcLabel = document.createElement('label');
                 startArcLabel.innerText = 'startArc';
@@ -291,7 +292,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 startArc.value = 0;
                 startArcWrapper.appendChild(startArcLabel);
                 startArcWrapper.appendChild(startArc);
-    
+
                 let endArcWrapper = document.createElement('div');
                 let endArcLabel = document.createElement('label');
                 endArcLabel.innerText = 'endArc';
@@ -302,7 +303,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 endArc.value = 360;
                 endArcWrapper.appendChild(endArcLabel);
                 endArcWrapper.appendChild(endArc);
-    
+
                 function setCircle(e) {
                     if (circleCheckBox.checked) {
                         obj.clipPath = {
@@ -310,7 +311,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                             type: 'circle',
                             radius: +radius.value,
                             startArc: +startArc.value,
-                            endArc: +endArc.value
+                            endArc: +endArc.value,
                         }
                     } else if (circleCheckBox2.checked) {
                         obj.clipPath = {
@@ -323,6 +324,13 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                     } else {
                         obj.clipPath = null;
                     }
+                    if (obj.clipPath) {
+                        if (circleCheckBox3.checked) {
+                            obj.clipPath.isInverse = true;
+                        } else {
+                            obj.clipPath.isInverse = false;
+                        }
+                    }
                 }
                 circleCheckBox.onclick = setCircle;
                 circleCheckBox2.onclick = setCircle;
@@ -330,7 +338,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 radius.oninput = setCircle;
                 startArc.oninput = setCircle;
                 endArc.oninput = setCircle;
-    
+
                 circle.appendChild(circleLabel);
                 circle.appendChild(circleCheckBox);
                 circle.appendChild(circleCheckBox2);
@@ -338,41 +346,41 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 circle.appendChild(radiusWrapper);
                 circle.appendChild(startArcWrapper);
                 circle.appendChild(endArcWrapper);
-    
+
                 clipPath.appendChild(circle);
-    
-                translateX.oninput = function () {
+
+                translateX.oninput = function() {
                     obj.translateX = +this.value;
                 }
-    
-                translateY.oninput = function () {
+
+                translateY.oninput = function() {
                     obj.translateY = +this.value;
                 }
-    
-                rotate.oninput = function () {
+
+                rotate.oninput = function() {
                     obj.rotate = +this.value;
                 }
-    
-                scaleX.oninput = function () {
+
+                scaleX.oninput = function() {
                     obj.scaleX = +this.value;
                 }
-    
-                scaleY.oninput = function () {
+
+                scaleY.oninput = function() {
                     obj.scaleY = +this.value;
                 }
-    
-                alpha.oninput = function () {
+
+                alpha.oninput = function() {
                     obj.alpha = +this.value;
                 }
-    
-                hue.oninput = function () {
+
+                hue.oninput = function() {
                     obj.hue = +this.value;
                 }
-    
-                contrast.oninput = function () {
+
+                contrast.oninput = function() {
                     obj.contrast = +this.value;
                 }
-    
+
                 let labelTranslateX = document.createElement('label');
                 labelTranslateX.innerText = 'translateX';
                 let labelTranslateY = document.createElement('label');
@@ -389,7 +397,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 labelHue.innerText = 'hue';
                 let labelContrast = document.createElement('label');
                 labelContrast.innerText = 'contrast';
-    
+
                 let translateXWrapper = document.createElement('div');
                 let translateYWrapper = document.createElement('div');
                 let rotateWrapper = document.createElement('div');
@@ -398,7 +406,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 let alphaWrapper = document.createElement('div');
                 let hueWrapper = document.createElement('div');
                 let contrastWrapper = document.createElement('div');
-    
+
                 translateXWrapper.appendChild(labelTranslateX);
                 translateXWrapper.appendChild(translateX);
                 translateYWrapper.appendChild(labelTranslateY);
@@ -415,8 +423,8 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 hueWrapper.appendChild(hue);
                 contrastWrapper.appendChild(labelContrast);
                 contrastWrapper.appendChild(contrast);
-    
-    
+
+
                 groups.appendChild(translateXWrapper);
                 groups.appendChild(translateYWrapper);
                 groups.appendChild(rotateWrapper);
@@ -432,7 +440,7 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
                 return groups;
             }());
         }
-    
+
         let groups = document.createElement('div');
         let group1 = createUI(video);
         let group2 = createUI(video2);
@@ -448,5 +456,4 @@ function test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER) {
 
 }
 
-
-export default test;
+test();

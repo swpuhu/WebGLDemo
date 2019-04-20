@@ -6,15 +6,15 @@
  */
 
 function createShader(gl, type, source) {
-  let shader = gl.createShader(type);
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  let success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-  if (success) {
-    return shader;
-  }
-  console.log(gl.getShaderInfoLog(shader));
-  gl.deleteShader(shader);
+    let shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    let success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (success) {
+        return shader;
+    }
+    console.log(gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
 }
 
 /**
@@ -24,16 +24,16 @@ function createShader(gl, type, source) {
  * @param {WebGLShader} fragmentShader
  */
 function createProgram(gl, vertexShader, fragmentShader) {
-  let program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  let success = gl.getProgramParameter(program, gl.LINK_STATUS);
-  if (success) {
-    return gl.program = program;
-  }
-  console.log(gl.getProgramInfoLog(program));
-  gl.deleteProgram(program);
+    let program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    let success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (success) {
+        return gl.program = program;
+    }
+    console.log(gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
 }
 
 /**
@@ -42,13 +42,13 @@ function createProgram(gl, vertexShader, fragmentShader) {
  * @param {String} VERTEX_SHADER
  * @param {String} FRAGMENT_SHADER
  */
-function createProgramBySource (gl, VERTEX_SHADER, FRAGMENT_SHADER) {
-  let vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-  let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
-  let program = createProgram(gl, vertexShader, fragmentShader);
-  gl.useProgram(program);
-  gl.program = program;
-  return program;
+function createProgramBySource(gl, VERTEX_SHADER, FRAGMENT_SHADER) {
+    let vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+    let fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+    let program = createProgram(gl, vertexShader, fragmentShader);
+    gl.useProgram(program);
+    gl.program = program;
+    return program;
 }
 
 /**
@@ -86,7 +86,10 @@ function createTranslateMatrix(tx, ty) {
  * @param {Number} scaleX
  * @param {Number} scaleY
  */
-function createScaleMatrix(scaleX, scaleY, center = {x: 0, y: 0}) {
+function createScaleMatrix(scaleX, scaleY, center = {
+    x: 0,
+    y: 0
+}) {
     return new Float32Array([
         scaleX, 0.0, 0.0, 0.0,
         0.0, scaleY, 0.0, 0.0,
@@ -100,12 +103,12 @@ function createScaleMatrix(scaleX, scaleY, center = {x: 0, y: 0}) {
  * @param {Number} value
  */
 function createContrastMatrix(value) {
-  return new Float32Array([
-    value, 0.0, 0.0, 0.0,
-    0.0, value, 0.0, 0.0,
-    0.0, 0.0, value, 0.0,
-    0.5 * (1 - value), 0.5 * (1 - value), 0.5 * (1 - value), 1.0,
-  ]);
+    return new Float32Array([
+        value, 0.0, 0.0, 0.0,
+        0.0, value, 0.0, 0.0,
+        0.0, 0.0, value, 0.0,
+        0.5 * (1 - value), 0.5 * (1 - value), 0.5 * (1 - value), 1.0,
+    ]);
 }
 
 
@@ -114,14 +117,14 @@ function createContrastMatrix(value) {
  * @param {Number} value
  */
 function createHueRotateMatrix(value) {
-  let sin = Math.sin(value * Math.PI / 180);
-  let cos = Math.cos(value * Math.PI / 180);
-  return new Float32Array([
-    0.213 + cos * 0.787 - sin * 0.213, 0.213 - cos * 0.213 + sin * 0.143, 0.213 - cos * 0.213 - sin * 0.787, 0.0,
-    0.715 - cos * 0.715 - sin * 0.715, 0.715 + cos * 0.285 + sin * 0.140, 0.715 - cos * 0.715 + sin * 0.715, 0.0,
-    0.072 - cos * 0.072 + sin * 0.928, 0.072 - cos * 0.072 - sin * 0.283, 0.072 + cos * 0.928 + sin * 0.072, 0.0,
-    0.0, 0.0, 0.0, 1.0,
-  ]);
+    let sin = Math.sin(value * Math.PI / 180);
+    let cos = Math.cos(value * Math.PI / 180);
+    return new Float32Array([
+        0.213 + cos * 0.787 - sin * 0.213, 0.213 - cos * 0.213 + sin * 0.143, 0.213 - cos * 0.213 - sin * 0.787, 0.0,
+        0.715 - cos * 0.715 - sin * 0.715, 0.715 + cos * 0.285 + sin * 0.140, 0.715 - cos * 0.715 + sin * 0.715, 0.0,
+        0.072 - cos * 0.072 + sin * 0.928, 0.072 - cos * 0.072 - sin * 0.283, 0.072 + cos * 0.928 + sin * 0.072, 0.0,
+        0.0, 0.0, 0.0, 1.0,
+    ]);
 }
 
 /**
@@ -133,22 +136,61 @@ function createHueRotateMatrix(value) {
  * @param {Number} endArc 终止圆弧半径
  * @param {Boolean} clockwise 方向，默认顺时针
  */
-function createArcVertex(gl, x, y, radius, startArc, endArc, clockwise = true) {
+function createArcVertex(gl, x, y, radius, startArc, endArc, isInverse = false) {
     let precision = 1;
     let oneArc = Math.PI / 180
     let points = [x, y, x / gl.canvas.width, y / gl.canvas.height];
     for (let i = startArc; i <= endArc; i += precision) {
-        points.push(
-        x + radius * Math.sin(i * oneArc),
-        (y - radius * Math.cos(i * oneArc)),
-        (x + radius * Math.sin(i * oneArc)) / gl.canvas.width,
-        (y - radius * Math.cos(i * oneArc)) / gl.canvas.height);
+        if (!isInverse) {
+            points.push(
+                x + radius * Math.sin(i * oneArc),
+                (y - radius * Math.cos(i * oneArc)),
+                (x + radius * Math.sin(i * oneArc)) / gl.canvas.width,
+                (y - radius * Math.cos(i * oneArc)) / gl.canvas.height);
+        } else {
+            points.push(
+                x - radius * Math.sin(i * oneArc),
+                (y - radius * Math.cos(i * oneArc)),
+                (x - radius * Math.sin(i * oneArc)) / gl.canvas.width,
+                (y - radius * Math.cos(i * oneArc)) / gl.canvas.height);
+        }
+
     }
     return new Float32Array(points);
 }
 
+/**
+ *
+ * @param {WebGLRenderingContext} gl
+ */
+function createTexture(gl) {
+   let texture = gl.createTexture();
+   gl.bindTexture(gl.TEXTURE_2D, texture);
+   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+   return texture;
+}
+
+function computeKernalWeight(kernal) {
+    let weight = kernal.reduce((prev, cur) => {
+        return prev + cur;
+    }, 0);
+    return weight <= 0 ? 1: weight;
+
+}
+
 export default {
-  createShader, createProgram, createProgramBySource,
-  createRotateMatrix, createTranslateMatrix, createScaleMatrix,
-  createContrastMatrix, createHueRotateMatrix, createArcVertex
+    createShader,
+    createProgram,
+    createProgramBySource,
+    createRotateMatrix,
+    createTranslateMatrix,
+    createScaleMatrix,
+    createContrastMatrix,
+    createHueRotateMatrix,
+    createArcVertex,
+    createTexture,
+    computeKernalWeight
 }

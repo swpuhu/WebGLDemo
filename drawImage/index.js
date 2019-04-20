@@ -1,5 +1,5 @@
 import util from '../glUtil.js';
-import test from './test.js';
+
 const VERTEX_SHADER = `
     attribute vec4 a_position;
     attribute vec2 a_texCoord;
@@ -67,25 +67,37 @@ const FRAG_SHADER = `
                 float startArc = radians(u_clipPath[3]);
                 float endArc = radians(u_clipPath[4]);
                 float angle = endArc - startArc;
+                float isInverse = u_clipPath[5];
                 if (pow(p.x - centerX, 2.0) + pow(p.y - centerY, 2.0) > pow(radius, 2.0)) {
                     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
                 } else {
                     vec2 startVector = vec2(radius * sin(startArc), -radius * cos(startArc));
+                    if (isInverse == 1.0) {
+                        startVector = vec2(-radius * sin(startArc), -radius * cos(startArc));
+                    }
                     if (angle < 0.0) {
                         angle = -angle;
                         startVector = vec2(radius * sin(endArc), -radius * cos(endArc));
+                        if (isInverse == 1.0) {
+                            startVector = vec2(-radius * sin(endArc), -radius * cos(endArc));
+                        }
                     }
                     vec2 vector = vec2(p.x - centerX, p.y - centerY);
                     float result = acos(dot(vector, startVector) / (length(vector) * length(startVector)));
-                    if (vector.x * startVector.y - vector.y * startVector.x > 0.0) {
-                        result = radians(360.0) - result;
+                    if (isInverse == 1.0) {
+                        if (vector.x * startVector.y - vector.y * startVector.x < 0.0) {
+                            result = radians(360.0) - result;
+                        }
+                    } else {
+                        if (vector.x * startVector.y - vector.y * startVector.x > 0.0) {
+                            result = radians(360.0) - result;
+                        }
                     }
                     if (result > angle) {
                         gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
                     } else {
                         gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
                     }
-                    
                 }
             } else {
                 gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
@@ -96,7 +108,7 @@ const FRAG_SHADER = `
 
 
 
-function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
+function getWebGLContext(canvas) {
     /**
      * @type {WebGLRenderingContext}
      */
@@ -173,7 +185,7 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
 
     let u_texResolution = gl.getUniformLocation(gl.program, 'u_texResolution');
 
-    gl.drawImage1 = function (image, dx, dy, dWidth, dHeight) {
+    gl.drawImage1 = function(image, dx, dy, dWidth, dHeight) {
         let position;
         let imageWidth, imageHeight;
         if (Object.prototype.toString.call(image) === '[object HTMLVideoElement]') {
@@ -210,7 +222,7 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
-    gl.drawImage2 = function (image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
+    gl.drawImage2 = function(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
         let imageWidth, imageHeight;
         let canvasWidth = this.canvas.width;
         let canvasHeight = this.canvas.height;
@@ -242,7 +254,7 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
-    gl.drawImage = function () {
+    gl.drawImage = function() {
         if (arguments.length === 3) {
             /**
              * @params image, dx, dy
@@ -323,10 +335,10 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
         gl.uniformMatrix4fv(u_contrast, false, matrix);
     }
 
-    function setRound(x = canvas.width / 2, y = canvas.height / 2, radius = 800, startArc = 0, endArc = 360) {
+    function setRound(x = canvas.width / 2, y = canvas.height / 2, radius = 800, startArc = 0, endArc = 360, isInverse = false) {
         gl.uniform1i(u_isCircle, 1);
         clipPath = new Float32Array([
-            x, y, radius, startArc, endArc
+            x, y, radius, startArc, endArc, isInverse ? 1 : 0
         ])
         gl.uniform1fv(u_clipPath, clipPath);
     }
@@ -390,4 +402,4 @@ function getWebGLContext(canvas, VERTEX_SHADER, FRAG_SHADER) {
     return gl;
 }
 
-test(getWebGLContext, VERTEX_SHADER, FRAG_SHADER);
+export default getWebGLContext;
