@@ -5,8 +5,8 @@ function test() {
     wrapper.style.cssText = 'background: url(\'../assets/hc.jpg\')'
     let canvas = document.createElement('canvas');
     wrapper.appendChild(canvas);
-    canvas.width = 640 * 2;
-    canvas.height = 360 * 2;
+    canvas.width = 640;
+    canvas.height = 360;
     document.body.appendChild(wrapper);
 
     let gl = getWebGLContext(canvas);
@@ -19,31 +19,13 @@ function test() {
     let canvas2d = document.createElement('canvas');
     canvas2d.width = 640;
     canvas2d.height = 360;
-    // document.body.appendChild(canvas2d);
     let ctx = canvas2d.getContext('2d');
-
-    // image.onload = function () {
-    //     gl.drawImage2(image, 500, 500, 1100, 300, 0, 0, 600, 300);
-    //     ctx.drawImage(image, 500, 500, 1100, 300, 0, 0, 600, 300);
-    // }
 
 
     let video = document.createElement('video');
     window.video = video;
     video.crossOrigin = 'anonymous';
     video.controls = true;
-    // if (Hls.isSupported()) {
-    //     let hls = new Hls();
-    //     hls.loadSource('../assets/result.m3u8');
-    //     hls.attachMedia(video);
-    //     hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-
-    //     });
-    //     hls.on(Hls.Events.LEVEL_LOADED, function (event, data) {
-    //         console.log(data.details.totalduration);
-    //     })
-    // }
-    // let video = window.video = document.createElement('video');
     video.src = 'https://swpuhu.github.io/pictures/test2.mp4';
     // video.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
     let video2 = document.createElement('video');
@@ -78,6 +60,7 @@ function test() {
         gl.setAlpha(video.alpha);
         gl.setHue(video.hue);
         gl.setContrast(video.contrast);
+        gl.setSaturate(video.saturate);
         if (video.clipPath) {
             if (video.clipPath.mode === 0) {
                 if (video.clipPath.type === 'circle') {
@@ -103,6 +86,7 @@ function test() {
         gl.setAlpha(video2.alpha);
         gl.setHue(video2.hue);
         gl.setContrast(video2.contrast);
+        gl.setSaturate(video2.saturate);
         if (video2.clipPath) {
             if (video2.clipPath.mode === 0) {
                 if (video2.clipPath.type === 'circle') {
@@ -193,64 +177,55 @@ function test() {
             }
         }
 
+        function createEditor (name, type, min, max, value, step = 1) {
+            let obj = {};
+            let oninput = null;
+            let wrapper = document.createElement('div');
+            let label = document.createElement('label');
+            label.innerText = name;
+            let input = document.createElement('input');
+            input.type = type;
+            input.max = max;
+            input.min = min;
+            input.value = value;
+            input.step = step;
+            input.oninput = function (e) {
+                oninput && oninput.call(this, e);
+            }
+            wrapper.appendChild(label);
+            wrapper.appendChild(input);
+            Object.defineProperties(obj, {
+                oninput: {
+                    set (value) {
+                        oninput = value;
+                    },
+                    get () {
+                        return oninput;
+                    }
+                },
+                ref: {
+                    get () {
+                        return wrapper;
+                    }
+                },
+                step: {
+                    set (value) {
+                        input.step = value;
+                    }
+                },
+                value: {
+                    get () {
+                        return input.value;
+                    }
+                }
+            })
+            return obj;
+        }
         function createUI(obj) {
             let lastName;
             return (function() {
 
                 let groups = document.createElement('div');
-                let translateX = document.createElement('input');
-                translateX.type = 'range';
-                translateX.min = -canvas.width;
-                translateX.max = canvas.width;
-                translateX.value = 0;
-
-                let translateY = document.createElement('input');
-                translateY.type = 'range';
-                translateY.min = -canvas.height;
-                translateY.max = canvas.height;
-                translateY.value = 0;
-
-                let rotate = document.createElement('input');
-                rotate.type = 'range';
-                rotate.min = -180;
-                rotate.max = 180;
-                rotate.value = 0;
-
-
-                let scaleX = document.createElement('input');
-                scaleX.step = 0.1;
-                scaleX.type = 'range';
-                scaleX.min = 0.1;
-                scaleX.max = 5;
-                scaleX.value = 1;
-
-                let scaleY = document.createElement('input');
-                scaleY.step = 0.1;
-                scaleY.type = 'range';
-                scaleY.min = 0.1;
-                scaleY.max = 5;
-                scaleY.value = 1;
-
-                let alpha = document.createElement('input');
-                alpha.step = 0.02;
-                alpha.type = 'range';
-                alpha.min = 0;
-                alpha.max = 1;
-                alpha.value = 1;
-
-                let hue = document.createElement('input');
-                hue.type = 'range';
-                hue.min = -180;
-                hue.max = 180;
-                hue.value = 0;
-
-
-                let contrast = document.createElement('input');
-                contrast.type = 'range';
-                contrast.step = 0.02;
-                contrast.min = 0;
-                contrast.max = 5;
-                contrast.value = 1;
 
                 let clipPath = document.createElement('div');
                 let clipPathTitle = document.createElement('h4');
@@ -275,55 +250,28 @@ function test() {
                 let circleCheckBox3 = document.createElement('input');
                 circleCheckBox3.type = 'checkbox';
 
-                let radiusWrapper = document.createElement('div');
-                let radiusLabel = document.createElement('label');
-                radiusLabel.innerText = 'radius';
-                let radius = document.createElement('input');
-                radius.type = 'range';
-                radius.min = 0;
-                radius.max = canvas.width;
-                radius.value = canvas.height;
-                radiusWrapper.appendChild(radiusLabel);
-                radiusWrapper.appendChild(radius);
+                let radiusWrapper = createEditor('radius', 'range', 0, canvas.width / 2, canvas.height / 2);
 
-                let startArcWrapper = document.createElement('div');
-                let startArcLabel = document.createElement('label');
-                startArcLabel.innerText = 'startArc';
-                let startArc = document.createElement('input');
-                startArc.type = 'range';
-                startArc.min = 0;
-                startArc.max = 360;
-                startArc.value = 0;
-                startArcWrapper.appendChild(startArcLabel);
-                startArcWrapper.appendChild(startArc);
+                let startArcWrapper = createEditor('startArc', 'range', 0, 360, 0);
 
-                let endArcWrapper = document.createElement('div');
-                let endArcLabel = document.createElement('label');
-                endArcLabel.innerText = 'endArc';
-                let endArc = document.createElement('input');
-                endArc.type = 'range';
-                endArc.min = 0;
-                endArc.max = 360;
-                endArc.value = 360;
-                endArcWrapper.appendChild(endArcLabel);
-                endArcWrapper.appendChild(endArc);
+                let endArcWrapper = createEditor('endArc', 'range', 0, 360, 360);
 
                 function setCircle(e) {
                     if (circleCheckBox.checked) {
                         obj.clipPath = {
                             mode: 0,
                             type: 'circle',
-                            radius: +radius.value,
-                            startArc: +startArc.value,
-                            endArc: +endArc.value,
+                            radius: +radiusWrapper.value,
+                            startArc: +startArcWrapper.value,
+                            endArc: +endArcWrapper.value,
                         }
                     } else if (circleCheckBox2.checked) {
                         obj.clipPath = {
                             mode: 1,
                             type: 'circle',
-                            radius: +radius.value,
-                            startArc: +startArc.value,
-                            endArc: +endArc.value
+                            radius: +radiusWrapper.value,
+                            startArc: +startArcWrapper.value,
+                            endArc: +endArcWrapper.value
                         }
                     } else {
                         obj.clipPath = null;
@@ -339,104 +287,78 @@ function test() {
                 circleCheckBox.onclick = setCircle;
                 circleCheckBox2.onclick = setCircle;
                 circleCheckBox3.onclick = setCircle;
-                radius.oninput = setCircle;
-                startArc.oninput = setCircle;
-                endArc.oninput = setCircle;
+                radiusWrapper.oninput = setCircle;
+                startArcWrapper.oninput = setCircle;
+                endArcWrapper.oninput = setCircle;
 
                 circle.appendChild(circleLabel);
                 circle.appendChild(circleCheckBox);
                 circle.appendChild(circleCheckBox2);
                 circle.appendChild(circleCheckBox3);
-                circle.appendChild(radiusWrapper);
-                circle.appendChild(startArcWrapper);
-                circle.appendChild(endArcWrapper);
+                circle.appendChild(radiusWrapper.ref);
+                circle.appendChild(startArcWrapper.ref);
+                circle.appendChild(endArcWrapper.ref);
 
                 clipPath.appendChild(circle);
 
-                translateX.oninput = function() {
+
+                let translateXWrapper = createEditor('translateX', 'range', -canvas.width, canvas.width, 0);
+                let translateYWrapper = createEditor('translateY', 'range', -canvas.height, canvas.height, 0);
+                let rotateWrapper = createEditor('rotate', 'range', -180, 180, 0);
+                let scaleXWrapper = createEditor('scaleX', 'range', 0.1, 5, 1, 0.1);
+                let scaleYWrapper = createEditor('scaleY', 'range', 0.1, 5, 1, 0.1);
+                let alphaWrapper = createEditor('alpha', 'range', 0, 1, 1, 0.02);
+                let hueWrapper = createEditor('hue', 'range', -180, 180, 0);
+                let contrastWrapper = createEditor('contrast', 'range', 0, 5, 1, 0.1);
+                let saturateWrapper = createEditor('saturate', 'range', 0, 2, 1, 0.02);
+
+                translateXWrapper.oninput = function() {
                     obj.translateX = +this.value;
                 }
 
-                translateY.oninput = function() {
+                translateYWrapper.oninput = function() {
                     obj.translateY = +this.value;
                 }
 
-                rotate.oninput = function() {
+                rotateWrapper.oninput = function() {
                     obj.rotate = +this.value;
                 }
 
-                scaleX.oninput = function() {
+                scaleXWrapper.oninput = function() {
                     obj.scaleX = +this.value;
                 }
 
-                scaleY.oninput = function() {
+                scaleYWrapper.oninput = function() {
                     obj.scaleY = +this.value;
                 }
 
-                alpha.oninput = function() {
+                alphaWrapper.oninput = function() {
                     obj.alpha = +this.value;
                 }
 
-                hue.oninput = function() {
+                hueWrapper.oninput = function() {
                     obj.hue = +this.value;
                 }
 
-                contrast.oninput = function() {
+                contrastWrapper.oninput = function() {
                     obj.contrast = +this.value;
                 }
 
-                let labelTranslateX = document.createElement('label');
-                labelTranslateX.innerText = 'translateX';
-                let labelTranslateY = document.createElement('label');
-                labelTranslateY.innerText = 'translateY';
-                let labelRotate = document.createElement('label');
-                labelRotate.innerText = 'rotate';
-                let labelScaleX = document.createElement('label');
-                labelScaleX.innerText = 'scaleX';
-                let labelScaleY = document.createElement('label');
-                labelScaleY.innerText = 'scaleY';
-                let labelAlpha = document.createElement('label');
-                labelAlpha.innerText = 'alpha';
-                let labelHue = document.createElement('label');
-                labelHue.innerText = 'hue';
-                let labelContrast = document.createElement('label');
-                labelContrast.innerText = 'contrast';
-
-                let translateXWrapper = document.createElement('div');
-                let translateYWrapper = document.createElement('div');
-                let rotateWrapper = document.createElement('div');
-                let scaleXWrapper = document.createElement('div');
-                let scaleYWrapper = document.createElement('div');
-                let alphaWrapper = document.createElement('div');
-                let hueWrapper = document.createElement('div');
-                let contrastWrapper = document.createElement('div');
-
-                translateXWrapper.appendChild(labelTranslateX);
-                translateXWrapper.appendChild(translateX);
-                translateYWrapper.appendChild(labelTranslateY);
-                translateYWrapper.appendChild(translateY);
-                rotateWrapper.appendChild(labelRotate);
-                rotateWrapper.appendChild(rotate);
-                scaleXWrapper.appendChild(labelScaleX);
-                scaleXWrapper.appendChild(scaleX);
-                scaleYWrapper.appendChild(labelScaleY);
-                scaleYWrapper.appendChild(scaleY);
-                alphaWrapper.appendChild(labelAlpha);
-                alphaWrapper.appendChild(alpha);
-                hueWrapper.appendChild(labelHue);
-                hueWrapper.appendChild(hue);
-                contrastWrapper.appendChild(labelContrast);
-                contrastWrapper.appendChild(contrast);
+                saturateWrapper.oninput = function() {
+                    obj.saturate = +this.value;
+                }
 
 
-                groups.appendChild(translateXWrapper);
-                groups.appendChild(translateYWrapper);
-                groups.appendChild(rotateWrapper);
-                groups.appendChild(scaleXWrapper);
-                groups.appendChild(scaleYWrapper);
-                groups.appendChild(alphaWrapper);
-                groups.appendChild(hueWrapper);
-                groups.appendChild(contrastWrapper);
+
+                groups.appendChild(translateXWrapper.ref);
+                groups.appendChild(translateYWrapper.ref);
+                groups.appendChild(rotateWrapper.ref);
+                groups.appendChild(scaleXWrapper.ref);
+                groups.appendChild(scaleYWrapper.ref);
+                groups.appendChild(alphaWrapper.ref);
+                groups.appendChild(hueWrapper.ref);
+                groups.appendChild(contrastWrapper.ref);
+                groups.appendChild(saturateWrapper.ref);
                 groups.appendChild(clipPath);
                 groups.style.cssText = `
                 margin: 0 15px;

@@ -5,13 +5,19 @@ const VERTEX_SHADER = `
     attribute vec2 a_texCoord;
     varying vec2 v_texCoord;
     uniform vec2 u_resolution;
-    uniform mat4 u_translate;
-    uniform mat4 u_rotate;
-    uniform mat4 u_scale;
+    // uniform mat4 u_translate;
+    // uniform mat4 u_rotate;
+    // uniform mat4 u_scale;
     varying vec4 v_transPosition;
+    uniform int u_enable;
     void main () {
-        v_transPosition = u_translate * u_rotate * u_scale * a_position;
-        gl_Position = (v_transPosition / vec4(u_resolution, 1.0, 1.0) * 2.0 - 1.0) * vec4(1, -1, 1, 1);
+        if (u_enable == 1) {
+            v_transPosition = a_position;
+            gl_Position = (v_transPosition / vec4(u_resolution, 1.0, 1.0) * 2.0 - 1.0) * vec4(1, -1, 1, 1);
+        } else {
+            v_transPosition = a_position;
+            gl_Position = (v_transPosition / vec4(u_resolution, 1.0, 1.0) * 2.0 - 1.0);
+        }
         v_texCoord = a_texCoord;
     }
 `;
@@ -26,12 +32,19 @@ const FRAG_SHADER = `
     uniform float u_alpha;
     uniform mat4 u_hueRotate;
     uniform mat4 u_contrast;
-    uniform float u_clipPath[40];
+    uniform mat4 u_saturate;
+    uniform float u_clipPath[6];
+    uniform mat4 u_translate;
+    uniform mat4 u_rotate;
+    uniform mat4 u_scale;
     uniform int u_isCircle;
     uniform vec2 u_texResolution;
+
     void main () {
         vec4 color;
+        vec2 mid_texCoord = (u_translate * u_rotate * u_scale * vec4(v_texCoord, 1.0, 1.0)).xy; 
         vec2 p = v_transPosition.xy;
+        // vec2 p = v_texCoord * u_texResolution;
         if (v_texCoord.x >= u_mask[0] && v_texCoord.x <= u_mask[1] && v_texCoord.y >= u_mask[2] && v_texCoord.y <= u_mask[3]) {
             if (u_mask[4] == 1.0) {
                 float dX = u_mask[1] - u_mask[0];
@@ -168,6 +181,10 @@ function getWebGLContext(canvas) {
     let contrast = util.createContrastMatrix(1);
     gl.uniformMatrix4fv(u_hueRotate, false, contrast);
 
+    let u_saturate = gl.getUniformLocation(gl.program, 'u_saturate');
+    let saturate = util.createSaturateMatrix(1);
+    gl.uniformMatrix4fv(u_saturate, false, saturate);
+
     let uMask = new Float32Array([
         0.0, 0.0, 0.0, 0.0,
         0.0, 0.0, 0.0, 0.0,
@@ -189,6 +206,17 @@ function getWebGLContext(canvas) {
         300, 300, 300, 0.0, 180.0
     ]);
     gl.uniform1fv(u_clipPath, clipPath);
+
+    let u_clipPathX = gl.getUniformLocation(gl.program, 'u_clipPathX[0]');
+    let clipPathX = new Float32Array([0, 500, 600, 500, 0]);
+    gl.uniform1fv(u_clipPathX, clipPathX);
+
+    let u_clipPathY = gl.getUniformLocation(gl.program, 'u_clipPathY[0]');
+    let clipPathY = new Float32Array([0, 0, 200, 220, 300]);
+    gl.uniform1fv(u_clipPathY, clipPathY);
+
+    let u_enable = gl.getUniformLocation(gl.program, 'u_enable');
+    gl.uniform1i(u_enable, 1);
 
     let u_texResolution = gl.getUniformLocation(gl.program, 'u_texResolution');
 
@@ -289,8 +317,10 @@ function getWebGLContext(canvas) {
      * @param {Array} matrix
      */
     function setMask(mask = []) {
+        if (!mask.length) return;
         let arr = [];
         let n = 40;
+        gl.uniform1i(u_enable, 0);
         if (mask.length % 5 !== 0) {
             throw new Error('数据数量错误！');
         }
@@ -309,11 +339,14 @@ function getWebGLContext(canvas) {
         for (let i = 0; i < uMask.length; i+= 5) {
             let _mask = uMask.slice(i, i + 5);
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[i % 2]);
+            gl.viewport(0, 0, canvas.width, canvas.height);
             gl.uniform1fv(u_mask, _mask);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             gl.bindTexture(gl.TEXTURE_2D, textures[i % 2]);
         }
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.uniform1i(u_enable, 1);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
@@ -353,6 +386,11 @@ function getWebGLContext(canvas) {
         gl.uniformMatrix4fv(u_contrast, false, matrix);
     }
 
+    function setSaturate(saturate = 1) {
+        let matrix = util.createSaturateMatrix(saturate);
+        gl.uniformMatrix4fv(u_saturate, false, matrix);
+    }
+
     function setRound(x = canvas.width / 2, y = canvas.height / 2, radius = 800, startArc = 0, endArc = 360, isInverse = false) {
         gl.uniform1i(u_isCircle, 1);
         clipPath = new Float32Array([
@@ -381,6 +419,7 @@ function getWebGLContext(canvas) {
         gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, FSIZE * 4, 0);
         gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false, FSIZE * 4, FSIZE * 2);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length / 4);
     }
 
@@ -408,6 +447,9 @@ function getWebGLContext(canvas) {
         },
         setRound: {
             value: setRound
+        },
+        setSaturate: {
+            value: setSaturate
         },
         cancelRound: {
             value: cancelRound

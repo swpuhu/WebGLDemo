@@ -128,6 +128,19 @@ function createHueRotateMatrix(value) {
 }
 
 /**
+ * @desc 饱和度矩阵
+ * @param {Number} value 
+ */
+function createSaturateMatrix(value) {
+    return new Float32Array([
+        0.3086 * (1 - value) + value, 0.3086 * (1 - value), 0.3086 * (1 - value), 0.0,
+        0.6094*(1 - value), 0.6094*(1 - value) + value, 0.6094*(1 - value), 0.0,
+        0.0820 * (1 - value), 0.0820 * (1 - value), 0.0820 * (1 - value) + value, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    ]);
+}
+
+/**
  * @param {WebGLRenderingContext} gl
  * @param {Number} x 中心x坐标
  * @param {Number} y 中心y坐标
@@ -178,7 +191,6 @@ function computeKernalWeight(kernal) {
         return prev + cur;
     }, 0);
     return weight <= 0 ? 1: weight;
-
 }
 
 /**
@@ -221,5 +233,6 @@ export default {
     createArcVertex,
     createTexture,
     computeKernalWeight,
-    checkPointIn
+    checkPointIn,
+    createSaturateMatrix
 }
