@@ -44,7 +44,7 @@ function test() {
     //     })
     // }
     // let video = window.video = document.createElement('video');
-    video.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
+    video.src = 'https://swpuhu.github.io/pictures/test2.mp4';
     // video.src = 'http://lmbsy.qq.com/flv/118/186/w0201qrxqy1.p201.1.mp4?sdtfrom=&platform=10201&fmt=shd&vkey=3AF565DB9EB483B31E3717BBDFA9FA29B950335B0A8CD55FDF84FA01F2F23AC7BC1F0AD3447315288FA3584565CF7667837742275714CB4BF14F270CDD2866A7721DAE0211D88CFEE07DB6CDA864CF319E0EA1CEECE1E7998175ED8264C98E07C3D05729C601056067E66AB1C693B9DC09186604CC6E5B96&level=0';
     let video2 = document.createElement('video');
     window.video2 = video2;
@@ -76,7 +76,6 @@ function test() {
         gl.setRotate(video.rotate);
         gl.setScale(video.scaleX, video.scaleY);
         gl.setAlpha(video.alpha);
-        gl.setMask(video.mask);
         gl.setHue(video.hue);
         gl.setContrast(video.contrast);
         if (video.clipPath) {
@@ -84,21 +83,23 @@ function test() {
                 if (video.clipPath.type === 'circle') {
                     gl.cancelRound();
                     gl.drawArc(video, canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc, video.clipPath.isInverse);
+                    gl.setMask(video.mask);
                 }
             } else if (video.clipPath.mode === 1) {
                 gl.setRound(canvas.width / 2, canvas.height / 2, video.clipPath.radius, video.clipPath.startArc, video.clipPath.endArc, video.clipPath.isInverse);
                 gl.drawImage(video, 0, 0, canvas.width, canvas.height);
+                gl.setMask(video.mask);
             }
         } else {
             gl.cancelRound();
             gl.drawImage(video, 0, 0, canvas.width, canvas.height);
+            gl.setMask(video.mask);
         }
 
         gl.cancelRound();
         gl.setTranslate(video2.translateX, video2.translateY);
         gl.setRotate(video2.rotate);
         gl.setScale(video2.scaleX, video2.scaleY);
-        gl.setMask(video2.mask);
         gl.setAlpha(video2.alpha);
         gl.setHue(video2.hue);
         gl.setContrast(video2.contrast);
@@ -107,15 +108,18 @@ function test() {
                 if (video2.clipPath.type === 'circle') {
                     gl.cancelRound();
                     gl.drawArc(video2, canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc, video2.clipPath.isInverse);
+                    gl.setMask(video2.mask);
                 }
             } else if (video2.clipPath.mode === 1) {
                 gl.setRound(canvas.width / 2, canvas.height / 2, video2.clipPath.radius, video2.clipPath.startArc, video2.clipPath.endArc, video2.clipPath.isInverse);
                 gl.drawImage(video2, 0, 0, canvas.width, canvas.height);
+                gl.setMask(video2.mask);
             }
 
         } else {
             gl.cancelRound();
             gl.drawImage(video2, 0, 0, canvas.width, canvas.height);
+            gl.setMask(video2.mask);
         }
         // gl.drawImage(video2, 300, 300, 1000, 500, 0, 0, canvas.width, canvas.height);
         ctx.drawImage(video, 0, 0, canvas2d.width, canvas2d.height);
@@ -152,8 +156,8 @@ function test() {
 
             video2.mask = [
                 0.0, 0.4, 0.2, 0.6, 1,
-                0.2, 0.5, 0.2, 0.7, 2,
-                0.1, 0.5, 0.3, 0.8, 1,
+                0.2, 0.5, 0.2, 0.7, 1,
+                0.1, 0.5, 0.3, 0.8, 2,
                 0.5, 0.9, 0.3, 0.5, 2,
                 0.1, 0.5, 0.0, 0.2, 1,
                 0.6, 0.9, 0.3, 0.8, 2,

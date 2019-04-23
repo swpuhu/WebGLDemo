@@ -22,7 +22,7 @@ const FRAG_SHADER = `
     uniform sampler2D u_texture;
     varying vec2 v_texCoord;
     varying vec4 v_transPosition;
-    uniform float u_mask[40];
+    uniform float u_mask[5];
     uniform float u_alpha;
     uniform mat4 u_hueRotate;
     uniform mat4 u_contrast;
@@ -32,28 +32,26 @@ const FRAG_SHADER = `
     void main () {
         vec4 color;
         vec2 p = v_transPosition.xy;
-        for (int i = 0; i < 40; i += 5) {
-            if (v_texCoord.x >= u_mask[i] && v_texCoord.x <= u_mask[i + 1] && v_texCoord.y >= u_mask[i + 2] && v_texCoord.y <= u_mask[i + 3]) {
-                if (u_mask[i + 4] == 1.0) {
-                    float dX = u_mask[i + 1] - u_mask[i];
-                    float offsetX = v_texCoord.x - u_mask[i];
-                    vec4 up_texCoord = texture2D(u_texture, vec2(u_mask[i], v_texCoord.y));
-                    vec4 bottom_texCoord = texture2D(u_texture, vec2(u_mask[i + 1], v_texCoord.y));
-                    vec4 midColor = up_texCoord * (1.0 - offsetX / dX) + bottom_texCoord * offsetX / dX;
-                    color = midColor;
-                } else {
-                    float dY = u_mask[i + 3] - u_mask[i + 2];
-                    float offsetY = v_texCoord.y - u_mask[i + 2];
-                    vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 2]));
-                    vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[i + 3]));
-                    vec4 midColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
-                    color = midColor;
-                }
-                break;
+        if (v_texCoord.x >= u_mask[0] && v_texCoord.x <= u_mask[1] && v_texCoord.y >= u_mask[2] && v_texCoord.y <= u_mask[3]) {
+            if (u_mask[4] == 1.0) {
+                float dX = u_mask[1] - u_mask[0];
+                float offsetX = v_texCoord.x - u_mask[0];
+                vec4 up_texCoord = texture2D(u_texture, vec2(u_mask[0], v_texCoord.y));
+                vec4 bottom_texCoord = texture2D(u_texture, vec2(u_mask[1], v_texCoord.y));
+                vec4 midColor = up_texCoord * (1.0 - offsetX / dX) + bottom_texCoord * offsetX / dX;
+                color = midColor;
             } else {
-                color = texture2D(u_texture, v_texCoord);
+                float dY = u_mask[3] - u_mask[2];
+                float offsetY = v_texCoord.y - u_mask[2];
+                vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[2]));
+                vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[3]));
+                vec4 midColor = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
+                color = midColor;
             }
+        } else {
+            color = texture2D(u_texture, v_texCoord);
         }
+
         if (v_texCoord.x < 0.0 ||
             v_texCoord.x > 1.0 ||
             v_texCoord.y < 0.0 ||
@@ -121,12 +119,21 @@ function getWebGLContext(canvas) {
     let buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-    let texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    let originTexture = util.createTexture(gl);
+    let textures = [];
+    let frameBuffers = [];
+
+    for (let i = 0; i < 2; ++i) {
+        let texture = util.createTexture(gl);
+        textures.push(texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        let frameBuffer = gl.createFramebuffer();
+        frameBuffers.push(frameBuffer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    }
+    gl.bindTexture(gl.TEXTURE_2D, originTexture);
 
     let a_position = gl.getAttribLocation(gl.program, 'a_position');
     gl.enableVertexAttribArray(a_position);
@@ -219,6 +226,7 @@ function getWebGLContext(canvas) {
         gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, FSIZE * 6, 0);
         gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false, FSIZE * 6, FSIZE * 4);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
@@ -251,6 +259,7 @@ function getWebGLContext(canvas) {
         gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, FSIZE * 6, 0);
         gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false, FSIZE * 6, FSIZE * 4);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
@@ -281,22 +290,31 @@ function getWebGLContext(canvas) {
      */
     function setMask(mask = []) {
         let arr = [];
+        let n = 40;
         if (mask.length % 5 !== 0) {
             throw new Error('数据数量错误！');
         }
-        if (mask.length < 40) {
+        if (mask.length < n) {
             arr = arr.concat(mask);
-            for (let i = 0; i < 40 - mask.length; i++) {
+            for (let i = 0; i < n - mask.length; i++) {
                 arr.push(0.0);
             }
             uMask = new Float32Array(arr);
-        } else if (mask.length > 40) {
-            mask = mask.slice(0, 32);
+        } else if (mask.length > n) {
+            uMask = mask.slice(0, n);
         } else {
             uMask = new Float32Array(mask);
         }
 
-        gl.uniform1fv(u_mask, uMask);
+        for (let i = 0; i < uMask.length; i+= 5) {
+            let _mask = uMask.slice(i, i + 5);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[i % 2]);
+            gl.uniform1fv(u_mask, _mask);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            gl.bindTexture(gl.TEXTURE_2D, textures[i % 2]);
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
 
