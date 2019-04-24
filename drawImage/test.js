@@ -10,6 +10,7 @@ function test() {
     document.body.appendChild(wrapper);
 
     let gl = getWebGLContext(canvas);
+    window.gl = gl;
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     gl.clear(gl.COLOR_BUFFER_BIT);

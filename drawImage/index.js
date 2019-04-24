@@ -5,14 +5,14 @@ const VERTEX_SHADER = `
     attribute vec2 a_texCoord;
     varying vec2 v_texCoord;
     uniform vec2 u_resolution;
-    // uniform mat4 u_translate;
-    // uniform mat4 u_rotate;
-    // uniform mat4 u_scale;
+    uniform mat4 u_translate;
+    uniform mat4 u_rotate;
+    uniform mat4 u_scale;
     varying vec4 v_transPosition;
     uniform int u_enable;
     void main () {
         if (u_enable == 1) {
-            v_transPosition = a_position;
+            v_transPosition = u_translate * u_rotate * u_scale * a_position;
             gl_Position = (v_transPosition / vec4(u_resolution, 1.0, 1.0) * 2.0 - 1.0) * vec4(1, -1, 1, 1);
         } else {
             v_transPosition = a_position;
@@ -34,15 +34,77 @@ const FRAG_SHADER = `
     uniform mat4 u_contrast;
     uniform mat4 u_saturate;
     uniform float u_clipPath[6];
-    uniform mat4 u_translate;
-    uniform mat4 u_rotate;
-    uniform mat4 u_scale;
+    uniform float u_clipPathX[10];
+    uniform float u_clipPathY[10];
     uniform int u_isCircle;
     uniform vec2 u_texResolution;
+    const float TERMINAL = -10000.0;
+    
+    float getMax(float path[10]) {
+        float max = path[0];
+        for (int i = 1; i < 10; i++) {
+            if (path[i] == TERMINAL) {
+                break;
+            }
+            if (max < path[i]) {
+                max = path[i];
+            }
+        }
+        return max;
+    }
+
+    float getMin(float path[10]) {
+        float min = path[0];
+        for (int i = 1; i < 10; i++) {
+            if (path[i] == TERMINAL) {
+                break;
+            }
+            if (min > path[i]) {
+                min = path[i];
+            }
+        }
+        return min;
+    }
+    // 检测是否在三角形内
+    bool isInTriangle (vec2 p1, vec2 p2, vec2 p3, vec2 p) {
+        vec2 v1 = p1 - p;
+        vec2 v2 = p2 - p;
+        vec2 v3 = p3 - p;
+        float t1 = v1.x * v2.y - v1.y * v2.x;
+        float t2 = v2.x * v3.y - v2.y * v3.x;
+        float t3 = v3.x * v1.y - v3.y * v1.x;
+        if ((t1 < 0.0 && t2 < 0.0 && t3 < 0.0) ||
+            (t1 >= 0.0 && t2 >= 0.0 && t3 >= 0.0)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    bool checkPointIn(float x, float y, float pathX[10], float pathY[10]) {
+        float minX = getMin(pathX);
+        float maxX = getMax(pathX);
+        float minY = getMin(pathY);
+        float maxY = getMax(pathY);
+        if (x < minX || x> maxX || y < minY || y > maxY) {
+            return false;
+        } else {
+            bool r = false;
+            for (int i = 0; i < 10; i += 3) {
+                if (pathX[i] == TERMINAL) {
+                    break;
+                }
+                if (isInTriangle(vec2(pathX[i], pathY[i]), vec2(pathX[i + 1], pathY[i + 1]), vec2(pathX[i + 2], pathY[i + 2]), vec2(x, y))) {
+                    r = true;
+                    break;
+                }
+            }
+            return r;
+        }
+    }
 
     void main () {
         vec4 color;
-        vec2 mid_texCoord = (u_translate * u_rotate * u_scale * vec4(v_texCoord, 1.0, 1.0)).xy; 
         vec2 p = v_transPosition.xy;
         // vec2 p = v_texCoord * u_texResolution;
         if (v_texCoord.x >= u_mask[0] && v_texCoord.x <= u_mask[1] && v_texCoord.y >= u_mask[2] && v_texCoord.y <= u_mask[3]) {
@@ -107,11 +169,16 @@ const FRAG_SHADER = `
                     if (result > angle) {
                         gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
                     } else {
-                        gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
+                        gl_FragColor = vec4((u_saturate * u_hueRotate * u_contrast * color).rgb, u_alpha);
                     }
                 }
             } else {
-                gl_FragColor = vec4((u_hueRotate * u_contrast * color).rgb, u_alpha);
+                if (checkPointIn(p.x, p.y, u_clipPathX, u_clipPathY)) {
+                    gl_FragColor = vec4((u_saturate * u_hueRotate * u_contrast * color).rgb, u_alpha);
+                } else {
+                    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+                }
+                
             }
         }
     }
@@ -120,11 +187,13 @@ const FRAG_SHADER = `
 
 
 function getWebGLContext(canvas) {
+    const TERMINAL = -10000.0;
     /**
      * @type {WebGLRenderingContext}
      */
-    let gl = canvas.getContext('webgl', {
-        preserveDrawingBuffer: true
+    let gl = canvas.getContext('webgl2', {
+        preserveDrawingBuffer: true,
+        antialias: true
     });
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
@@ -208,11 +277,11 @@ function getWebGLContext(canvas) {
     gl.uniform1fv(u_clipPath, clipPath);
 
     let u_clipPathX = gl.getUniformLocation(gl.program, 'u_clipPathX[0]');
-    let clipPathX = new Float32Array([0, 500, 600, 500, 0]);
+    let clipPathX = new Float32Array([100, 300, 500, 200, 400, 600, TERMINAL]);
     gl.uniform1fv(u_clipPathX, clipPathX);
 
     let u_clipPathY = gl.getUniformLocation(gl.program, 'u_clipPathY[0]');
-    let clipPathY = new Float32Array([0, 0, 200, 220, 300]);
+    let clipPathY = new Float32Array([100, 0, 100, 200, 100, 200,TERMINAL]);
     gl.uniform1fv(u_clipPathY, clipPathY);
 
     let u_enable = gl.getUniformLocation(gl.program, 'u_enable');
