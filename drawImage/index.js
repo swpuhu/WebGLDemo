@@ -39,7 +39,7 @@ const FRAG_SHADER = `
     uniform int u_isCircle;
     uniform vec2 u_texResolution;
     const float TERMINAL = -10000.0;
-    
+
     float getMax(float path[10]) {
         float max = path[0];
         for (int i = 1; i < 10; i++) {
@@ -178,7 +178,7 @@ const FRAG_SHADER = `
                 } else {
                     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
                 }
-                
+
             }
         }
     }

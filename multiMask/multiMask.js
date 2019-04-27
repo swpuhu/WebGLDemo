@@ -5,7 +5,7 @@ const VERTEX_SHADER = `
     attribute vec2 a_texCoord;
     varying vec2 v_texCoord;
     void main () {
-        gl_Position = a_position;
+        gl_Position = a_position * vec4(1.0, -1, 1, 1);
         v_texCoord = a_texCoord;
     }
 `;
@@ -16,25 +16,7 @@ const FRAG_SHADER = `
     uniform sampler2D u_texture;
     uniform float u_mask[5];
     void main () {
-        vec4 color;
-        if (v_texCoord.x > u_mask[0] && v_texCoord.x < u_mask[1] && v_texCoord.y > u_mask[2] && v_texCoord.y < u_mask[3]) {
-            if (u_mask[4] == 1.0) {
-                float dX = u_mask[1] - u_mask[0];
-                float offsetX = v_texCoord.x - u_mask[0];
-                vec4 up_texCoord = texture2D(u_texture, vec2(u_mask[0], v_texCoord.y));
-                vec4 bottom_texCoord = texture2D(u_texture, vec2(u_mask[1], v_texCoord.y));
-                color = up_texCoord * (1.0 - offsetX / dX) + bottom_texCoord * offsetX / dX;
-            } else {
-                float dY = u_mask[3] - u_mask[2];
-                float offsetY = v_texCoord.y - u_mask[2];
-                vec4 up_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[2]));
-                vec4 bottom_texCoord = texture2D(u_texture, vec2(v_texCoord.x, u_mask[3]));
-                color = up_texCoord * (1.0 - offsetY / dY) + bottom_texCoord * offsetY / dY;
-            }
-        } else {
-            color = texture2D(u_texture, v_texCoord);
-        }
-        gl_FragColor = color;
+        gl_FragColor =  texture2D(u_texture, v_texCoord);
     }
 `;
 
@@ -55,7 +37,6 @@ function main (canvas) {
     ]);
 
     let FSIZE = points.BYTES_PER_ELEMENT;
-
     let buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, points, gl.STATIC_DRAW);
@@ -104,21 +85,22 @@ function main (canvas) {
         gl.bindTexture(gl.TEXTURE_2D, originImageTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
-        for (let i = 0; i < masks.length; i += 5) {
-            let _mask = masks.slice(i);
-            setFramebuffer(frameBuffers[i % 2], canvas.width, canvas.height);
+        // for (let i = 0; i < masks.length; i += 5) {
+        //     let _mask = masks.slice(i);
+        //     setFramebuffer(frameBuffers[i % 2], canvas.width, canvas.height);
 
-            gl.uniform1fv(u_mask, _mask);
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        //     gl.uniform1fv(u_mask, _mask);
+        //     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-            gl.bindTexture(gl.TEXTURE_2D, textures[i % 2]);
-        }
+        //     gl.bindTexture(gl.TEXTURE_2D, textures[i % 2]);
+        // }
 
         setFramebuffer(null, canvas.width, canvas.height);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
-    image.src = '../assets/hc.jpg';
+    let svg = document.getElementById('svg');
+    image.src = 'data:image/svg+xml;base64,' + window.btoa(svg.outerHTML);
 
     function setFramebuffer(fbo, width, height) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);

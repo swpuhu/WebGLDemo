@@ -129,7 +129,7 @@ function createHueRotateMatrix(value) {
 
 /**
  * @desc 饱和度矩阵
- * @param {Number} value 
+ * @param {Number} value
  */
 function createSaturateMatrix(value) {
     return new Float32Array([
@@ -218,6 +218,34 @@ function checkPointIn(x, y, vertX, vertY) {
         }
         return r;
     }
+}
+
+/**
+ *
+ * @param {Number} x
+ * @param {Number} y
+ * @param {Array} vertX
+ * @param {Array} vertY
+ */
+function checkPointIn2 (x, y, vertX, vertY) {
+    let minX = Math.min(...vertX);
+    let minY = Math.min(...vertY);
+    let maxX = Math.max(...vertX);
+    let maxY = Math.max(...vertY);
+    if (x < minX || x > maxX || y < minY || y > maxY) {
+        return false;
+    } else {
+        let i, j, r;
+        r = false;
+        for (let i = 0, j = vertX.length - 1; i < vertX.length; j = i++) {
+            if ((vertY[i] > y) !== (vertY[j] > y) &&
+                (x < (y - vertY[i]) * (vertX[j] - vertX[i]) / (vertY[j] - vertY[i]) + vertX[i])) {
+                    r = !r;
+                }
+        }
+        return r;
+    }
+
 }
 
 
