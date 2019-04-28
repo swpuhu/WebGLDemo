@@ -37,6 +37,7 @@ const FRAG_SHADER = `
     uniform float u_clipPathX[10];
     uniform float u_clipPathY[10];
     uniform int u_isCircle;
+    uniform vec4 u_dipColor;
     uniform vec2 u_texResolution;
     const float TERMINAL = -10000.0;
 
@@ -131,7 +132,7 @@ const FRAG_SHADER = `
             v_texCoord.x > 1.0 ||
             v_texCoord.y < 0.0 ||
             v_texCoord.y > 1.0) {
-                gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+                color = vec4(0.0, 0.0, 0.0, 0.0);
         } else {
             if (u_isCircle == 1) {
                 float centerX = u_clipPath[0];
@@ -142,7 +143,7 @@ const FRAG_SHADER = `
                 float angle = endArc - startArc;
                 float isInverse = u_clipPath[5];
                 if (pow(p.x - centerX, 2.0) + pow(p.y - centerY, 2.0) > pow(radius, 2.0)) {
-                    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+                    color = vec4(0.0, 0.0, 0.0, 0.0);
                 } else {
                     vec2 startVector = vec2(radius * sin(startArc), -radius * cos(startArc));
                     if (isInverse == 1.0) {
@@ -167,20 +168,21 @@ const FRAG_SHADER = `
                         }
                     }
                     if (result > angle) {
-                        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+                        color = vec4(0.0, 0.0, 0.0, 0.0);
                     } else {
-                        gl_FragColor = vec4((u_saturate * u_hueRotate * u_contrast * color).rgb, u_alpha);
+                        color = vec4((u_saturate * u_hueRotate * u_contrast * color).rgb, u_alpha);
                     }
                 }
             } else {
                 if (checkPointIn(p.x, p.y, u_clipPathX, u_clipPathY)) {
-                    gl_FragColor = vec4((u_saturate * u_hueRotate * u_contrast * color).rgb, u_alpha);
+                    color = vec4((u_saturate * u_hueRotate * u_contrast * color).rgb, u_alpha);
                 } else {
-                    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+                    color = vec4(0.0, 0.0, 0.0, 0.0);
                 }
-
             }
         }
+
+        gl_FragColor = vec4((color.rgb * (1.0 - u_dipColor.w) + u_dipColor.rgb * u_dipColor.w), color.a);
     }
 `;
 
@@ -277,12 +279,18 @@ function getWebGLContext(canvas) {
     gl.uniform1fv(u_clipPath, clipPath);
 
     let u_clipPathX = gl.getUniformLocation(gl.program, 'u_clipPathX[0]');
-    let clipPathX = new Float32Array([100, 300, 500, 200, 400, 600, TERMINAL]);
+    let clipPathX = new Float32Array([0, canvas.width, canvas.width, canvas.width, 0, 0, TERMINAL]);
     gl.uniform1fv(u_clipPathX, clipPathX);
 
     let u_clipPathY = gl.getUniformLocation(gl.program, 'u_clipPathY[0]');
-    let clipPathY = new Float32Array([100, 0, 100, 200, 100, 200,TERMINAL]);
+    let clipPathY = new Float32Array([0, 0, canvas.height, canvas.height, canvas.height, 0,TERMINAL]);
     gl.uniform1fv(u_clipPathY, clipPathY);
+
+    let u_dipColor = gl.getUniformLocation(gl.program, 'u_dipColor');
+    let dipToColor = new Float32Array([
+        1.0, 1.0, 0.0, 0.6
+    ]);
+    gl.uniform4fv(u_dipColor, dipToColor);
 
     let u_enable = gl.getUniformLocation(gl.program, 'u_enable');
     gl.uniform1i(u_enable, 1);

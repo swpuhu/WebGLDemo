@@ -33,8 +33,7 @@ function test() {
     window.video2 = video2;
     video2.crossOrigin = 'anonymous';
     video.controls = true;
-    video2.src = 'http://vhoth.dnion.videocdn.qq.com/flv/107/117/a0201rs3lid.p201.1.mp4?fmt=shd&level=0&sdtfrom=&platform=10201&vkey=75088F3E0FF79CA2BB83B825245980A72A409A578571BEBA210CCF1AE333D52CD7115401C235AE4C3981EC4B78A91152EBF31789867B4AA36C689CA743555E4FC82B2C5EE462EF9EC2A96E6B3E7A12C692D6B8DDECD756585E9864EF6072C8C5AE4142B0CE94B85EB6786CD63096C9D927539B2CB4ACBB6A';
-    // video2.src = 'http://gitee.com/swpuhu/media/raw/master/test1.mp4';
+    video2.src = 'https://swpuhu.github.io/pictures/test1.mp4';
     video2.loop = true;
 
     video2.oncanplaythrough = function() {
@@ -312,6 +311,8 @@ function test() {
                 let hueWrapper = createEditor('hue', 'range', -180, 180, 0);
                 let contrastWrapper = createEditor('contrast', 'range', 0, 5, 1, 0.1);
                 let saturateWrapper = createEditor('saturate', 'range', 0, 2, 1, 0.02);
+                let dipColorWrapper = createEditor('dipToColor', 'range', 0, 1, 0, 0.01);
+                let dipColorWrapper2 = createEditor('dipToColor', 'color');
 
                 translateXWrapper.oninput = function() {
                     obj.translateX = +this.value;
@@ -349,6 +350,10 @@ function test() {
                     obj.saturate = +this.value;
                 }
 
+                dipColorWrapper.oninput = function() {
+                    obj.dipColor = +this.value;
+                }
+
 
 
                 groups.appendChild(translateXWrapper.ref);
@@ -360,6 +365,8 @@ function test() {
                 groups.appendChild(hueWrapper.ref);
                 groups.appendChild(contrastWrapper.ref);
                 groups.appendChild(saturateWrapper.ref);
+                groups.appendChild(dipColorWrapper.ref);
+                groups.appendChild(dipColorWrapper2.ref);
                 groups.appendChild(clipPath);
                 groups.style.cssText = `
                 margin: 0 15px;
