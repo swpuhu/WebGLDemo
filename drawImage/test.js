@@ -1,4 +1,5 @@
 import getWebGLContext from './index.js';
+import glUtil from '../glUtil.js';
 
 function test() {
     let wrapper = document.createElement('div');
@@ -51,6 +52,10 @@ function test() {
     document.body.appendChild(button);
 
     let id;
+    video.muted = true;
+    video2.muted = true;
+    video.dipColor = [0, 0, 0];
+    video2.dipColor = [0, 0, 0];
 
     function draw() {
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -61,6 +66,7 @@ function test() {
         gl.setHue(video.hue);
         gl.setContrast(video.contrast);
         gl.setSaturate(video.saturate);
+        gl.setDipColor(...video.dipColor, video.dipColorProgress);
         if (video.clipPath) {
             if (video.clipPath.mode === 0) {
                 if (video.clipPath.type === 'circle') {
@@ -87,6 +93,7 @@ function test() {
         gl.setHue(video2.hue);
         gl.setContrast(video2.contrast);
         gl.setSaturate(video2.saturate);
+        gl.setDipColor(...video2.dipColor, video2.dipColorProgress);
         if (video2.clipPath) {
             if (video2.clipPath.mode === 0) {
                 if (video2.clipPath.type === 'circle') {
@@ -351,7 +358,11 @@ function test() {
                 }
 
                 dipColorWrapper.oninput = function() {
-                    obj.dipColor = +this.value;
+                    obj.dipColorProgress = +this.value;
+                }
+
+                dipColorWrapper2.oninput = function() {
+                    obj.dipColor = glUtil.hexToRGB(this.value);
                 }
 
 

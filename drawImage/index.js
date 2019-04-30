@@ -288,7 +288,7 @@ function getWebGLContext(canvas) {
 
     let u_dipColor = gl.getUniformLocation(gl.program, 'u_dipColor');
     let dipToColor = new Float32Array([
-        1.0, 1.0, 0.0, 0.6
+        1.0, 1.0, 0.0, 0.1
     ]);
     gl.uniform4fv(u_dipColor, dipToColor);
 
@@ -468,6 +468,13 @@ function getWebGLContext(canvas) {
         gl.uniformMatrix4fv(u_saturate, false, matrix);
     }
 
+    function setDipColor(r = 0, g = 0, b = 0, p = 0) {
+        let dipToColor = new Float32Array([
+            r, g, b, p
+        ]);
+        gl.uniform4fv(u_dipColor, dipToColor);
+    }
+
     function setRound(x = canvas.width / 2, y = canvas.height / 2, radius = 800, startArc = 0, endArc = 360, isInverse = false) {
         gl.uniform1i(u_isCircle, 1);
         clipPath = new Float32Array([
@@ -533,6 +540,9 @@ function getWebGLContext(canvas) {
         },
         drawArc: {
             value: drawArc
+        },
+        setDipColor: {
+            value: setDipColor
         }
     });
 

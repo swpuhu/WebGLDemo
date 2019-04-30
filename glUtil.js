@@ -248,6 +248,48 @@ function checkPointIn2 (x, y, vertX, vertY) {
 
 }
 
+/**
+ *
+ * @param {String} hex
+ */
+function hexToRGB(hex) {
+    if (/#[a-f0-9]{6}/i.test(hex)) {
+        let r = +('0x' + hex.substr(1, 2));
+        let g = +('0x' + hex.substr(3, 2));
+        let b = +('0x' + hex.substr(5, 2));
+        return [r / 255, g / 255, b / 255];
+    }
+}
+
+function generateImageByDiv(width, height, html) {
+    let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+
+    let style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    style.textContent = `
+        @font-face {
+            font-family: 'ShouJinTi';
+            src: url('http://localhost:8081/WebGLTraining/assets/shoujin.ttf');
+        }
+    `;
+
+    let foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+    foreignObject.setAttribute('x', 0);
+    foreignObject.setAttribute('y', 0);
+    foreignObject.setAttribute('width', width);
+    foreignObject.setAttribute('height', height);
+
+    let div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+    div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    div.innerHTML = html;
+    foreignObject.appendChild(div);
+    svg.appendChild(style);
+    svg.appendChild(foreignObject);
+    return svg;
+}
 
 export default {
     createShader,
@@ -262,5 +304,7 @@ export default {
     createTexture,
     computeKernalWeight,
     checkPointIn,
-    createSaturateMatrix
+    createSaturateMatrix,
+    hexToRGB,
+    generateImageByDiv
 }
