@@ -38,19 +38,29 @@ const FRAG_SHADER = `
         }
         return size;
     }
+
+    float getScalar(float a, float b, float c) {
+        return (a + b + c) / 3.0;
+    }
     void main () {
         // 计算1像素对应的纹理坐标
         vec2 onePixel = vec2(1.0, 1.0) / u_texResolution;
-        vec4 colorSum = (getAverage(texture2D(u_texture, v_texCoord)) * u_kernal[4] +
-        getAverage(texture2D(u_texture, v_texCoord + onePixel * vec2(-1, -1))) * u_kernal[0] +
-                        getAverage(texture2D(u_texture, v_texCoord + onePixel * vec2( 0, -1))) * u_kernal[1] +
-                        getAverage(texture2D(u_texture, v_texCoord + onePixel * vec2( 1, -1))) * u_kernal[2] +
-                        getAverage(texture2D(u_texture, v_texCoord + onePixel * vec2(-1,  0))) * u_kernal[3] +
-                        getAverage(texture2D(u_texture, v_texCoord + onePixel * vec2( 1,  0)))* u_kernal[5] +
-                        getAverage(texture2D(u_texture, v_texCoord + onePixel * vec2(-1,  1))) * u_kernal[6] +
-                        getAverage(texture2D(u_texture, v_texCoord + onePixel * vec2( 0,  1)))* u_kernal[7] +
-                        getAverage(texture2D(u_texture, v_texCoord + onePixel * vec2( 1,  1)))* u_kernal[8]);
-        gl_FragColor = vec4((colorSum / u_kernalWeight).rgb, 1.0);
+        vec4 color = texture2D(u_texture, v_texCoord) * u_kernal[4];
+        vec4 color1 = texture2D(u_texture, v_texCoord + onePixel * vec2(-1, -1)) * u_kernal[0];
+        vec4 color2 = texture2D(u_texture, v_texCoord + onePixel * vec2(0, -1)) * u_kernal[1];
+        vec4 color3 = texture2D(u_texture, v_texCoord + onePixel * vec2(1, -1)) * u_kernal[2];
+        vec4 color4 = texture2D(u_texture, v_texCoord + onePixel * vec2(-1, 0)) * u_kernal[3];
+        vec4 color5 = texture2D(u_texture, v_texCoord + onePixel * vec2(1, 0)) * u_kernal[5];
+        vec4 color6 = texture2D(u_texture, v_texCoord + onePixel * vec2(-1, 1)) * u_kernal[6];
+        vec4 color7 = texture2D(u_texture, v_texCoord + onePixel * vec2(0, 1)) * u_kernal[7];
+        vec4 color8 = texture2D(u_texture, v_texCoord + onePixel * vec2(1, 1)) * u_kernal[8];
+        vec4 colorSum = color1 + color2 + color3 + color4 + color5 + color6 + color7 + color8 + color;
+        if (colorSum.r > 0.0 && (color5 / u_kernal[5]  + color7 / u_kernal[7] - 2.0 * color / u_kernal[4]).r >= 0.0) {
+            gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+        } else {
+            gl_FragColor = vec4((colorSum / u_kernalWeight).rgb, 1.0);
+        }
+
     }
 `;
 
@@ -131,15 +141,15 @@ function main (canvas) {
 
     let sharpenKernal = new Float32Array([
            -1, -1, -1,
-           -1, 9, -1,
+           -1, 8, -1,
            -1, -1, -1
         ]);
 
     let effectsApply = [
-        'origin',
-        'blurKernal',
+        // 'origin',
+        // 'blurKernal',
         'sharpenKernal',
-        'emboss',
+        // 'emboss',
     ];
 
     let kernals = {
@@ -159,7 +169,7 @@ function main (canvas) {
     gl.uniform1f(u_kernalWeight, util.computeKernalWeight(currentKernals));
 
     let texture = util.createTexture(gl);
-    let src = '../assets/icon.jpg';
+    let src = '../assets/heibai.png';
     let image = new Image();
     image.onload = function () {
         let originImageTexture = util.createTexture(gl);
